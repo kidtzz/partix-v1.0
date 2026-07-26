@@ -1,0 +1,276 @@
+<div class="view-header flex justify-between items-center mb-4">
+    <h2 class="view-title mb-0">
+        <i class='bx bx-revision'></i> Proses Return Barang
+    </h2>
+</div>
+
+<div class="grid" style="grid-template-columns: 1fr 2fr; gap: 24px;">
+    
+    <!-- Left Column: Search Invoice -->
+    <div class="glass-card" style="padding: 24px; height: fit-content;">
+        <h3 style="margin-top:0; margin-bottom: 16px; font-size: 16px;">Cari Data Transaksi</h3>
+        
+        <div class="input-group">
+            <label>Nomor Invoice / Barcode Transaksi</label>
+            <div style="display:flex; gap:8px;">
+                <input type="text" class="input-control" id="searchInvoice" placeholder="INV-20260726-0001">
+                <button class="btn btn-primary" onclick="cariInvoice()"><i class='bx bx-search'></i> Cari</button>
+            </div>
+        </div>
+        
+        <div id="invoiceInfoPanel" style="display: none; margin-top: 24px; padding-top: 24px; border-top: 1px dashed var(--border-color);">
+            <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">Informasi Invoice</div>
+            <div style="font-weight: 600; font-size: 16px; margin-bottom: 12px;">INV-20260726-0001</div>
+            
+            <div class="flex justify-between mb-2">
+                <span style="color: var(--text-muted); font-size: 14px;">Tanggal</span>
+                <span style="font-size: 14px;">26 Jul 2026 14:30</span>
+            </div>
+            <div class="flex justify-between mb-2">
+                <span style="color: var(--text-muted); font-size: 14px;">Kasir</span>
+                <span style="font-size: 14px;">Kasir 1</span>
+            </div>
+            <div class="flex justify-between">
+                <span style="color: var(--text-muted); font-size: 14px;">Total</span>
+                <span style="font-size: 14px; font-weight: 600;">Rp 100.000</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Return Items -->
+    <div class="glass-card" style="padding: 24px; display: flex; flex-direction: column;">
+        <h3 style="margin-top:0; margin-bottom: 16px; font-size: 16px;">Barang yang Dibeli</h3>
+        
+        <div id="emptyInvoiceState" style="text-align: center; color: var(--text-muted); padding: 40px 0; opacity: 0.7;">
+            <i class='bx bx-receipt' style="font-size: 48px; margin-bottom: 12px;"></i>
+            <p>Silakan cari nomor invoice terlebih dahulu</p>
+        </div>
+        
+        <div id="returnItemsContainer" style="display: none; flex: 1; flex-direction: column; gap: 16px;">
+            <!-- Mock Item to Return -->
+            <div style="border: 1px solid var(--border-solid); border-radius: var(--radius-md); padding: 16px;">
+                <div class="flex justify-between items-center mb-4">
+                    <div>
+                        <div style="font-weight: 600;">Kampas Rem Depan Vario</div>
+                        <div style="font-size: 13px; color: var(--text-muted);">Dibeli: 2 PCS @ Rp 45.000</div>
+                    </div>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" style="width: 18px; height: 18px;" onchange="toggleReturnForm('RTN_B01', this.checked)">
+                        <span style="font-size: 14px; font-weight: 500;">Pilih Return</span>
+                    </label>
+                </div>
+                
+                <div id="returnForm_RTN_B01" style="display: none; background: #F9FAFB; padding: 16px; border-radius: var(--radius-md); margin-top: 12px;">
+                    <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="input-group mb-0">
+                            <label>Qty Direturn</label>
+                            <input type="number" class="input-control" max="2" min="1" value="1">
+                        </div>
+                        <div class="input-group mb-0">
+                            <label>Alasan Return</label>
+                            <select class="input-control">
+                                <option>Cacat Pabrik</option>
+                                <option>Salah Beli</option>
+                                <option>Lainnya</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="input-group mt-4 mb-0">
+                        <label>Jenis Penyelesaian</label>
+                        <select class="input-control">
+                            <option>Tukar Barang Sama (Ganti Stok Baru)</option>
+                            <option>Refund Uang Tunai</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="margin-top: auto; padding-top: 24px; border-top: 1px solid var(--border-solid); text-align: right;">
+                <button class="btn btn-primary" onclick="prosesReturn()">
+                    <i class='bx bx-check'></i> Proses Return
+                </button>
+            </div>
+        </div>
+    </div>
+    
+</div>
+
+<script>
+    let currentInvoice = null;
+    let currentReturnItems = {}; // id_barang -> { qty_return, jenis, harga_satuan }
+
+    function cariInvoice() {
+        const input = document.getElementById('searchInvoice').value.trim();
+        if(!input) return;
+        
+        const btn = document.querySelector('button[onclick="cariInvoice()"]');
+        btn.innerHTML = `<i class='bx bx-loader-alt bx-spin'></i>`;
+        
+        BackendAPI.call('verifikasiInvoice', [input])
+            .then(res => {
+                currentInvoice = res;
+                renderInvoiceInfo();
+                renderReturnItems();
+            })
+            .catch(err => {
+                showToast(err.message, 'error');
+                resetReturnView();
+            })
+            .finally(() => {
+                btn.innerHTML = `<i class='bx bx-search'></i> Cari`;
+            });
+    }
+    
+    function renderInvoiceInfo() {
+        const header = currentInvoice.header;
+        document.getElementById('emptyInvoiceState').style.display = 'none';
+        document.getElementById('invoiceInfoPanel').style.display = 'block';
+        
+        // Asumsi struktur 'tanggal', 'kasir', 'total' dari header Penjualan
+        const tgl = new Date(header.tanggal).toLocaleString('id-ID');
+        
+        document.getElementById('invoiceInfoPanel').innerHTML = `
+            <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">Informasi Invoice</div>
+            <div style="font-weight: 600; font-size: 16px; margin-bottom: 12px;">${header.no_invoice}</div>
+            
+            <div class="flex justify-between mb-2">
+                <span style="color: var(--text-muted); font-size: 14px;">Tanggal</span>
+                <span style="font-size: 14px;">${tgl}</span>
+            </div>
+            <div class="flex justify-between mb-2">
+                <span style="color: var(--text-muted); font-size: 14px;">Kasir</span>
+                <span style="font-size: 14px;">${header.kasir}</span>
+            </div>
+            <div class="flex justify-between">
+                <span style="color: var(--text-muted); font-size: 14px;">Total Belanja</span>
+                <span style="font-size: 14px; font-weight: 600;">${formatRupiah(header.total)}</span>
+            </div>
+        `;
+    }
+    
+    function renderReturnItems() {
+        const container = document.getElementById('returnItemsContainer');
+        container.style.display = 'flex';
+        currentReturnItems = {};
+        
+        // Render semua item dari detail transaksi
+        const itemsHtml = currentInvoice.detail.map((d, index) => {
+            const formId = `returnForm_${index}`;
+            return `
+            <div style="border: 1px solid var(--border-solid); border-radius: var(--radius-md); padding: 16px;">
+                <div class="flex justify-between items-center mb-2">
+                    <div>
+                        <div style="font-weight: 600;">${d.nama_barang_snapshot}</div>
+                        <div style="font-size: 13px; color: var(--text-muted);">Dibeli: ${d.qty} PCS @ ${formatRupiah(d.harga_satuan_snapshot)}</div>
+                    </div>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" style="width: 18px; height: 18px;" onchange="toggleReturnForm('${index}', this.checked, '${d.id_barang}', ${d.qty}, ${d.harga_satuan_snapshot})">
+                        <span style="font-size: 14px; font-weight: 500;">Pilih Return</span>
+                    </label>
+                </div>
+                
+                <div id="${formId}" style="display: none; background: #F9FAFB; padding: 16px; border-radius: var(--radius-md); margin-top: 12px;">
+                    <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="input-group mb-0">
+                            <label>Qty Direturn</label>
+                            <input type="number" class="input-control" id="qtyRet_${index}" max="${d.qty}" min="1" value="1" onchange="updateReturnItem('${index}')">
+                        </div>
+                        <div class="input-group mb-0">
+                            <label>Jenis Penyelesaian</label>
+                            <select class="input-control" id="jenisRet_${index}" onchange="updateReturnItem('${index}')">
+                                <option value="Tukar Barang Sama">Tukar Barang Sama (Ganti Baru)</option>
+                                <option value="Refund Uang">Refund Uang Tunai</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            `;
+        }).join('');
+        
+        container.innerHTML = itemsHtml + `
+            <div style="margin-top: auto; padding-top: 24px; border-top: 1px solid var(--border-solid); text-align: right;">
+                <button class="btn btn-primary" onclick="prosesReturnAPI()" id="btnProsesReturn">
+                    <i class='bx bx-check'></i> Proses Return
+                </button>
+            </div>
+        `;
+    }
+    
+    function toggleReturnForm(index, isChecked, idBarang, maxQty, hargaSatuan) {
+        document.getElementById(`returnForm_${index}`).style.display = isChecked ? 'block' : 'none';
+        
+        if (isChecked) {
+            currentReturnItems[index] = {
+                id_barang_direturn: idBarang,
+                qty_return: Number(document.getElementById(`qtyRet_${index}`).value),
+                jenis: document.getElementById(`jenisRet_${index}`).value,
+                harga_satuan: hargaSatuan
+            };
+        } else {
+            delete currentReturnItems[index];
+        }
+    }
+    
+    function updateReturnItem(index) {
+        if (currentReturnItems[index]) {
+            currentReturnItems[index].qty_return = Number(document.getElementById(`qtyRet_${index}`).value);
+            currentReturnItems[index].jenis = document.getElementById(`jenisRet_${index}`).value;
+        }
+    }
+    
+    function prosesReturnAPI() {
+        const keys = Object.keys(currentReturnItems);
+        if (keys.length === 0) {
+            return showToast("Pilih minimal 1 barang untuk direturn!", "error");
+        }
+        
+        let selisihBayar = 0; 
+        const items = [];
+        
+        for (let k of keys) {
+            const ri = currentReturnItems[k];
+            // Jika refund uang, berarti toko minus (mengeluarkan uang) -> negatif
+            if (ri.jenis === "Refund Uang") {
+                selisihBayar -= (ri.harga_satuan * ri.qty_return);
+            }
+            
+            items.push({
+                id_barang_direturn: ri.id_barang_direturn,
+                qty_return: ri.qty_return,
+                id_barang_pengganti: (ri.jenis === "Tukar Barang Sama") ? ri.id_barang_direturn : "",
+                qty_pengganti: (ri.jenis === "Tukar Barang Sama") ? ri.qty_return : 0
+            });
+        }
+        
+        const noInvoice = currentInvoice.header.no_invoice;
+        const jenisGlobal = (selisihBayar === 0) ? "Tukar Barang Sama" : "Refund Uang / Campuran";
+        
+        const btn = document.getElementById('btnProsesReturn');
+        btn.disabled = true;
+        btn.innerHTML = "Memproses...";
+        
+        BackendAPI.call('prosesReturn', [noInvoice, items, jenisGlobal, selisihBayar])
+            .then(res => {
+                showToast(`Return Berhasil! No: ${res.noReturn}`, "success");
+                if (selisihBayar < 0) {
+                    alert(`PENTING!\nKembalikan Uang Tunai kepada pelanggan sebesar: ${formatRupiah(Math.abs(selisihBayar))}`);
+                }
+                resetReturnView();
+            })
+            .catch(err => showToast(err.message, "error"))
+            .finally(() => {
+                if(btn) { btn.disabled = false; btn.innerHTML = "<i class='bx bx-check'></i> Proses Return"; }
+            });
+    }
+    
+    function resetReturnView() {
+        document.getElementById('emptyInvoiceState').style.display = 'block';
+        document.getElementById('invoiceInfoPanel').style.display = 'none';
+        document.getElementById('returnItemsContainer').style.display = 'none';
+        document.getElementById('searchInvoice').value = '';
+        currentInvoice = null;
+        currentReturnItems = {};
+    }
+</script>

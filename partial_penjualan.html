@@ -1,0 +1,522 @@
+<div class="pos-container">
+    <!-- Left Side: Product Grid & Search -->
+    <div class="pos-products">
+        <div class="pos-header">
+            <h2 class="view-title">
+                <i class='bx bx-cart'></i> Point of Sale
+            </h2>
+            <div class="search-bar">
+                <i class='bx bx-barcode-reader'></i>
+                <input type="text" id="posSearch" placeholder="Scan Barcode atau Cari Barang..." autofocus>
+            </div>
+        </div>
+
+        <div class="product-grid" id="posProductGrid">
+            <!-- Mock Products -->
+            <div class="product-card glass-card" onclick="addToCart('B01', 'Kampas Rem Depan Vario', 45000)">
+                <div class="product-image">
+                    <i class='bx bx-wrench'></i>
+                </div>
+                <div class="product-info">
+                    <h4 class="product-name">Kampas Rem Depan Vario</h4>
+                    <span class="product-price">Rp 45.000</span>
+                    <span class="product-stock">Stok: 15</span>
+                </div>
+            </div>
+
+            <div class="product-card glass-card" onclick="addToCart('B02', 'Oli Mesin MPX 2', 55000)">
+                <div class="product-image">
+                    <i class='bx bxs-color-fill'></i>
+                </div>
+                <div class="product-info">
+                    <h4 class="product-name">Oli Mesin MPX 2</h4>
+                    <span class="product-price">Rp 55.000</span>
+                    <span class="product-stock">Stok: 30</span>
+                </div>
+            </div>
+            
+             <div class="product-card glass-card" onclick="addToCart('B03', 'Busi NGK', 25000)">
+                <div class="product-image">
+                    <i class='bx bxs-zap'></i>
+                </div>
+                <div class="product-info">
+                    <h4 class="product-name">Busi NGK Standard</h4>
+                    <span class="product-price">Rp 25.000</span>
+                    <span class="product-stock">Stok: 50</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Side: Cart / Checkout -->
+    <div class="pos-cart glass-effect">
+        <div class="cart-header">
+            <h3>Keranjang</h3>
+            <span class="cart-count badge badge-primary" id="cartItemCount">0 Item</span>
+        </div>
+
+        <div class="cart-items" id="cartItemsContainer">
+            <div class="empty-cart-state">
+                <i class='bx bx-cart'></i>
+                <p>Keranjang masih kosong</p>
+            </div>
+            <!-- Cart items will be injected here -->
+        </div>
+
+        <div class="cart-summary">
+            <div class="summary-row">
+                <span>Subtotal</span>
+                <span id="cartSubtotal">Rp 0</span>
+            </div>
+            
+            <div class="input-group mt-4">
+                <label>Tipe Harga</label>
+                <select class="input-control" id="tipeHarga" onchange="changeTipeHarga()">
+                    <option value="Regular">Regular</option>
+                    <option value="Langganan">Langganan</option>
+                    <option value="Teman">Teman</option>
+                </select>
+            </div>
+            
+            <div class="input-group mt-3">
+                <label>Metode Bayar</label>
+                <select class="input-control" id="metodeBayar" onchange="toggleCashInput()">
+                    <option value="Cash">Cash (Tunai)</option>
+                    <option value="Transfer">Transfer Bank</option>
+                    <option value="QRIS">QRIS</option>
+                </select>
+            </div>
+            
+            <div class="input-group mt-3" id="cashInputContainer">
+                <label>Uang Diterima</label>
+                <input type="number" class="input-control" id="uangDiterima" placeholder="Cth: 100000">
+            </div>
+
+            <div class="summary-row total">
+                <span>Total</span>
+                <span id="cartTotal">Rp 0</span>
+            </div>
+
+            <button class="btn btn-primary btn-checkout" onclick="processCheckout()">
+                <i class='bx bx-check-circle'></i> Bayar Sekarang
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+    .pos-container {
+        display: flex;
+        gap: 24px;
+        height: 100%;
+    }
+
+    .pos-products {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .pos-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+    }
+
+    .product-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 16px;
+        overflow-y: auto;
+        padding-bottom: 24px;
+        padding-right: 8px; /* For scrollbar */
+    }
+
+    .product-card {
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .product-image {
+        height: 120px;
+        background: rgba(79, 70, 229, 0.05);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 48px;
+        color: var(--primary-color);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+    }
+
+    .product-info {
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .product-name {
+        font-size: 14px;
+        margin: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .product-price {
+        font-weight: 700;
+        color: var(--primary-color);
+    }
+
+    .product-stock {
+        font-size: 12px;
+        color: var(--text-muted);
+    }
+
+    /* Cart */
+    .pos-cart {
+        width: 360px;
+        border-radius: var(--radius-xl);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .cart-header {
+        padding: 20px;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .cart-header h3 {
+        margin: 0;
+        font-size: 18px;
+    }
+
+    .cart-items {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .empty-cart-state {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-muted);
+        opacity: 0.7;
+    }
+
+    .empty-cart-state i {
+        font-size: 48px;
+        margin-bottom: 12px;
+    }
+
+    .cart-item {
+        background: white;
+        border-radius: var(--radius-md);
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border-solid);
+    }
+
+    .cart-item-header {
+        display: flex;
+        justify-content: space-between;
+    }
+    
+    .cart-item-name {
+        font-weight: 600;
+        font-size: 14px;
+    }
+
+    .cart-item-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .qty-controls {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: #F3F4F6;
+        border-radius: var(--radius-full);
+        padding: 4px;
+    }
+
+    .qty-btn {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: var(--shadow-sm);
+        color: var(--text-main);
+    }
+
+    .qty-btn:hover {
+        background: var(--primary-color);
+        color: white;
+    }
+
+    .cart-summary {
+        background: rgba(255, 255, 255, 0.8);
+        padding: 20px;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .summary-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+        font-size: 14px;
+        color: var(--text-muted);
+    }
+
+    .summary-row.total {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--text-main);
+        margin-top: 16px;
+        margin-bottom: 24px;
+    }
+
+    .btn-checkout {
+        width: 100%;
+        padding: 14px;
+        font-size: 16px;
+    }
+</style>
+
+<script>
+    let posCart = [];
+    let masterBarangPOS = [];
+
+    function formatRupiah(amount) {
+        if(isNaN(amount)) return "Rp 0";
+        return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
+    }
+
+    // Dipanggil dari js.html atau pada load view
+    function initPOS() {
+        if (AppState.user.role === "Restocker") return; // Restocker tak punya akses
+        
+        const grid = document.getElementById('posProductGrid');
+        grid.innerHTML = `<div style="padding:20px; text-align:center; grid-column: 1 / -1;"><i class='bx bx-loader-alt bx-spin' style='font-size:24px;'></i> Memuat Data Barang...</div>`;
+        
+        BackendAPI.call('getBarangUntukPOS').then(data => {
+            masterBarangPOS = data;
+            renderPOSGrid();
+        }).catch(err => {
+            showToast("Gagal memuat barang: " + err.message, "error");
+        });
+    }
+
+    function renderPOSGrid() {
+        const grid = document.getElementById('posProductGrid');
+        const tipeHarga = document.getElementById('tipeHarga').value;
+        
+        if (masterBarangPOS.length === 0) {
+            grid.innerHTML = `<div style="padding:20px; text-align:center; grid-column: 1 / -1;">Data barang kosong atau gagal dimuat.</div>`;
+            return;
+        }
+
+        grid.innerHTML = masterBarangPOS.map(b => `
+            <div class="product-card glass-card" onclick="addToCart('${b.id_barang}')">
+                <div class="product-image">
+                    ${b.gambar_url ? `<img src="${b.gambar_url}" style="width:100%;height:100%;object-fit:cover;">` : `<i class='bx bx-package'></i>`}
+                </div>
+                <div class="product-info">
+                    <h4 class="product-name">${b.nama_barang}</h4>
+                    <span class="product-price">${formatRupiah(b.harga[tipeHarga] || 0)}</span>
+                    <span class="product-stock">Stok: ${b.stok_saat_ini} | ${b.barcode}</span>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // Barcode Listener (Section 9)
+    document.getElementById('posSearch').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const barcode = this.value.trim();
+            if (!barcode) return;
+            
+            BackendAPI.call('scanBarcodePenjualan', [barcode]).then(b => {
+                addToCartData(b);
+                this.value = '';
+                this.focus();
+            }).catch(err => {
+                showToast(err.message, "error");
+                this.select(); // auto select for quick re-scan
+            });
+        }
+    });
+
+    function addToCart(id_barang) {
+        const b = masterBarangPOS.find(x => x.id_barang === id_barang);
+        if (b) addToCartData(b);
+    }
+    
+    function addToCartData(b) {
+        if (b.stok_saat_ini <= 0) {
+            return showToast(`Stok ${b.nama_barang} habis!`, "error");
+        }
+        
+        const existing = posCart.find(item => item.id_barang === b.id_barang);
+        if (existing) {
+            if (existing.qty >= b.stok_saat_ini) {
+                return showToast(`Maksimal stok tercapai (${b.stok_saat_ini})`, "error");
+            }
+            existing.qty += 1;
+        } else {
+            posCart.push({ 
+                id_barang: b.id_barang, 
+                nama_barang: b.nama_barang, 
+                harga: b.harga, // Object harga untuk re-kalkulasi saat tipeHarga berubah
+                qty: 1,
+                stok_maksimal: b.stok_saat_ini
+            });
+        }
+        renderCart();
+        showToast(`${b.nama_barang} ditambahkan`, 'success');
+    }
+    
+    function updateQty(id_barang, delta) {
+        const item = posCart.find(i => i.id_barang === id_barang);
+        if(item) {
+            if (delta > 0 && item.qty >= item.stok_maksimal) {
+                return showToast(`Maksimal stok tercapai (${item.stok_maksimal})`, "error");
+            }
+            item.qty += delta;
+            if(item.qty <= 0) {
+                posCart = posCart.filter(i => i.id_barang !== id_barang);
+            }
+            renderCart();
+        }
+    }
+
+    function renderCart() {
+        const container = document.getElementById('cartItemsContainer');
+        const countBadge = document.getElementById('cartItemCount');
+        const tipeHarga = document.getElementById('tipeHarga').value;
+        
+        if (posCart.length === 0) {
+            container.innerHTML = `
+                <div class="empty-cart-state">
+                    <i class='bx bx-cart'></i>
+                    <p>Keranjang masih kosong</p>
+                </div>
+            `;
+            countBadge.textContent = '0 Item';
+        } else {
+            container.innerHTML = posCart.map(item => {
+                const hargaSatuan = item.harga[tipeHarga] || 0;
+                return `
+                <div class="cart-item">
+                    <div class="cart-item-header">
+                        <span class="cart-item-name">${item.nama_barang}</span>
+                        <button class="btn-icon" onclick="updateQty('${item.id_barang}', -999)" style="color:var(--danger-color); padding:0; background:transparent; border:none; cursor:pointer;">
+                            <i class='bx bx-trash'></i>
+                        </button>
+                    </div>
+                    <div class="cart-item-actions">
+                        <span class="cart-item-price">${formatRupiah(hargaSatuan * item.qty)}</span>
+                        <div class="qty-controls">
+                            <button class="qty-btn" onclick="updateQty('${item.id_barang}', -1)"><i class='bx bx-minus'></i></button>
+                            <span>${item.qty}</span>
+                            <button class="qty-btn" onclick="updateQty('${item.id_barang}', 1)"><i class='bx bx-plus'></i></button>
+                        </div>
+                    </div>
+                </div>
+            `}).join('');
+            
+            const totalItems = posCart.reduce((sum, item) => sum + item.qty, 0);
+            countBadge.textContent = `${totalItems} Item`;
+        }
+        
+        updateCartTotal();
+    }
+
+    function updateCartTotal() {
+        const tipeHarga = document.getElementById('tipeHarga').value;
+        const subtotal = posCart.reduce((sum, item) => sum + ((item.harga[tipeHarga] || 0) * item.qty), 0);
+        
+        document.getElementById('cartSubtotal').textContent = formatRupiah(subtotal);
+        document.getElementById('cartTotal').textContent = formatRupiah(subtotal);
+    }
+    
+    function changeTipeHarga() {
+        renderPOSGrid(); // Refresh grid prices
+        renderCart();    // Refresh cart prices
+    }
+
+    function toggleCashInput() {
+        const mtd = document.getElementById('metodeBayar').value;
+        document.getElementById('cashInputContainer').style.display = (mtd === 'Cash') ? 'block' : 'none';
+    }
+    
+    function processCheckout() {
+        if (posCart.length === 0) {
+            return showToast('Keranjang masih kosong!', 'error');
+        }
+        
+        const tipeHarga = document.getElementById('tipeHarga').value;
+        const metodeBayar = document.getElementById('metodeBayar').value;
+        let uangDiterima = 0;
+        
+        if (metodeBayar === "Cash") {
+            uangDiterima = Number(document.getElementById('uangDiterima').value) || 0;
+            const subtotal = posCart.reduce((sum, item) => sum + ((item.harga[tipeHarga] || 0) * item.qty), 0);
+            if (uangDiterima < subtotal) {
+                return showToast('Uang diterima kurang dari total belanja!', 'error');
+            }
+        }
+        
+        const btn = document.querySelector('.btn-checkout');
+        btn.disabled = true;
+        btn.innerHTML = `<i class='bx bx-loader-alt bx-spin'></i> Memproses...`;
+        
+        // Parameter: cartItems, tipeHarga, metodeBayar, detailBayar, uangDiterima
+        BackendAPI.call('simpanTransaksi', [posCart, tipeHarga, metodeBayar, {}, uangDiterima])
+            .then(res => {
+                showToast(`Transaksi Selesai! Kembalian: ${formatRupiah(res.kembalian)}`, 'success');
+                alert(`Transaksi Berhasil!\nNo Invoice: ${res.noInvoice}\nKembalian: ${formatRupiah(res.kembalian)}`);
+                
+                posCart = [];
+                renderCart();
+                document.getElementById('uangDiterima').value = '';
+                initPOS(); // Refresh stok barang terbaru dari server
+            })
+            .catch(err => {
+                showToast("Gagal: " + err.message, "error");
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.innerHTML = `<i class='bx bx-check-circle'></i> Bayar Sekarang`;
+            });
+    }
+
+    // Panggil init saat DOM Ready (untuk module Penjualan yang merupakan default view)
+    document.addEventListener('DOMContentLoaded', () => {
+        // Tunda sedikit agar js.html (AppState) ready
+        setTimeout(initPOS, 500);
+    });
+</script>

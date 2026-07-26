@@ -1,0 +1,221 @@
+<!-- Tab: Pengaturan Harga -->
+<section id="view-admin-harga" class="view-section">
+    <div class="view-header flex justify-between items-center mb-4">
+        <h2 class="view-title mb-0">
+            <i class='bx bx-purchase-tag'></i> Pengaturan Harga Jual
+        </h2>
+        <div class="search-bar">
+            <i class='bx bx-search'></i>
+            <input type="text" id="adminSearchHarga" placeholder="Cari barang...">
+        </div>
+    </div>
+    
+    <div class="glass-card" style="padding: 24px; flex: 1; overflow: hidden; display: flex; flex-direction: column;">
+        <div class="table-container" style="flex: 1;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Barang</th>
+                        <th>Harga Regular</th>
+                        <th>Harga Langganan</th>
+                        <th>Harga Teman</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="adminHargaTableBody">
+                    <tr><td colspan="5" style="text-align:center;">Memuat data...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<!-- Tab: Master Barang -->
+<section id="view-admin-barang" class="view-section">
+    <div class="view-header flex justify-between items-center mb-4">
+        <h2 class="view-title mb-0">
+            <i class='bx bx-box'></i> Master Data Barang
+        </h2>
+        <button class="btn btn-primary"><i class='bx bx-plus'></i> Tambah Barang (Coming Soon)</button>
+    </div>
+    <div class="glass-card" style="padding: 40px; text-align: center; color: var(--text-muted);">
+        <i class='bx bx-box' style="font-size: 48px; margin-bottom: 16px;"></i>
+        <p>Fitur CRUD lengkap master barang akan tampil di sini.</p>
+    </div>
+</section>
+
+<!-- Tab: Manajemen User -->
+<section id="view-admin-user" class="view-section">
+    <div class="view-header flex justify-between items-center mb-4">
+        <h2 class="view-title mb-0">
+            <i class='bx bx-user-circle'></i> Manajemen User & Hak Akses
+        </h2>
+        <button class="btn btn-primary"><i class='bx bx-plus'></i> Tambah User (Coming Soon)</button>
+    </div>
+    <div class="glass-card" style="padding: 40px; text-align: center; color: var(--text-muted);">
+        <i class='bx bx-user-circle' style="font-size: 48px; margin-bottom: 16px;"></i>
+        <p>Kelola akses Admin, Restocker, dan Kasir di sini.</p>
+    </div>
+</section>
+
+<!-- Tab: Histori Transaksi -->
+<section id="view-admin-transaksi" class="view-section">
+    <div class="view-header flex justify-between items-center mb-4">
+        <h2 class="view-title mb-0">
+            <i class='bx bx-history'></i> Histori Transaksi
+        </h2>
+        <div class="search-bar">
+            <i class='bx bx-search'></i>
+            <input type="text" id="adminSearchTransaksi" placeholder="No. Invoice...">
+        </div>
+    </div>
+    <div class="glass-card" style="padding: 40px; text-align: center; color: var(--text-muted);">
+        <i class='bx bx-history' style="font-size: 48px; margin-bottom: 16px;"></i>
+        <p>Fitur histori dan laporan transaksi lengkap akan tampil di sini.</p>
+    </div>
+</section>
+
+<!-- Modal Edit Harga -->
+<div class="modal-overlay" id="modalEditHarga">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Edit Harga Jual</h3>
+            <button class="modal-close" onclick="closeEditHarga()"><i class='bx bx-x'></i></button>
+        </div>
+        <div class="modal-body">
+            <div style="margin-bottom: 20px;">
+                <div style="font-weight: 600;" id="modalEditHargaNama">Nama Barang</div>
+                <div style="font-size: 13px; color: var(--text-muted);" id="modalEditHargaId">BRG-0000</div>
+            </div>
+            
+            <div class="input-group">
+                <label>Harga Regular</label>
+                <input type="number" class="input-control" id="editHargaReg" value="0">
+            </div>
+            <div class="input-group">
+                <label>Harga Langganan</label>
+                <input type="number" class="input-control" id="editHargaLan" value="0">
+            </div>
+            <div class="input-group">
+                <label>Harga Teman</label>
+                <input type="number" class="input-control" id="editHargaTem" value="0">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeEditHarga()">Batal</button>
+            <button class="btn btn-primary" id="btnSimpanHarga" onclick="simpanEditHarga()">Simpan Perubahan</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let adminBarangData = [];
+    let isAdminHargaLoaded = false;
+
+    function initAdminHargaView() {
+        if (AppState.user.role !== "Admin") {
+            return;
+        }
+        if(!isAdminHargaLoaded) {
+            loadAdminHarga();
+        }
+    }
+
+    function loadAdminHarga() {
+        document.getElementById('adminHargaTableBody').innerHTML = `<tr><td colspan="5" style="text-align:center;">Memuat data...</td></tr>`;
+        BackendAPI.call('getBarangUntukPOS').then(data => {
+            adminBarangData = data;
+            renderAdminHarga(data);
+            isAdminHargaLoaded = true;
+        }).catch(err => {
+            document.getElementById('adminHargaTableBody').innerHTML = `<tr><td colspan="5" style="color:red; text-align:center;">Error: ${err.message}</td></tr>`;
+        });
+    }
+
+    function renderAdminHarga(data) {
+        const tbody = document.getElementById('adminHargaTableBody');
+        if(data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">Tidak ada barang</td></tr>`;
+            return;
+        }
+        
+        tbody.innerHTML = data.map(b => `
+            <tr>
+                <td>
+                    <div style="font-weight: 600;">${b.nama_barang}</div>
+                    <div style="font-size: 12px; color: var(--text-muted);">${b.id_barang} | ${b.barcode}</div>
+                </td>
+                <td>${formatRupiah(b.harga['Regular'] || 0)}</td>
+                <td>${formatRupiah(b.harga['Langganan'] || 0)}</td>
+                <td>${formatRupiah(b.harga['Teman'] || 0)}</td>
+                <td>
+                    <button class="btn btn-secondary btn-sm" onclick="editHarga('${b.id_barang}')">Edit</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    document.getElementById('adminSearchHarga').addEventListener('keyup', function() {
+        const kw = this.value.toLowerCase();
+        const filtered = adminBarangData.filter(b => b.nama_barang.toLowerCase().includes(kw) || b.id_barang.toLowerCase().includes(kw));
+        renderAdminHarga(filtered);
+    });
+    
+    function editHarga(idBarang) {
+        const b = adminBarangData.find(x => x.id_barang === idBarang);
+        if(!b) return;
+        
+        document.getElementById('modalEditHargaNama').textContent = b.nama_barang;
+        document.getElementById('modalEditHargaId').textContent = b.id_barang;
+        document.getElementById('editHargaReg').value = b.harga['Regular'] || 0;
+        document.getElementById('editHargaLan').value = b.harga['Langganan'] || 0;
+        document.getElementById('editHargaTem').value = b.harga['Teman'] || 0;
+        
+        document.getElementById('modalEditHarga').classList.add('active');
+    }
+    
+    function closeEditHarga() {
+        document.getElementById('modalEditHarga').classList.remove('active');
+    }
+    
+    function simpanEditHarga() {
+        const idBarang = document.getElementById('modalEditHargaId').textContent;
+        const hrgReg = Number(document.getElementById('editHargaReg').value);
+        const hrgLan = Number(document.getElementById('editHargaLan').value);
+        const hrgTem = Number(document.getElementById('editHargaTem').value);
+        
+        const btn = document.getElementById('btnSimpanHarga');
+        btn.disabled = true;
+        btn.innerHTML = "Menyimpan...";
+        
+        // Kita panggil updateHargaJual 3 kali berurutan menggunakan promise chaining
+        BackendAPI.call('updateHargaJual', [idBarang, 'Regular', hrgReg])
+        .then(() => BackendAPI.call('updateHargaJual', [idBarang, 'Langganan', hrgLan]))
+        .then(() => BackendAPI.call('updateHargaJual', [idBarang, 'Teman', hrgTem]))
+        .then(() => {
+            showToast('Semua harga berhasil diperbarui', 'success');
+            closeEditHarga();
+            loadAdminHarga(); // reload data
+        })
+        .catch(err => showToast(err.message, 'error'))
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerHTML = "Simpan Perubahan";
+        });
+    }
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.target.id === 'view-admin-harga' && mutation.target.classList.contains('active')) {
+                    initAdminHargaView();
+                }
+            });
+        });
+        
+        const viewHarga = document.getElementById('view-admin-harga');
+        if(viewHarga) {
+            observer.observe(viewHarga, { attributes: true, attributeFilter: ['class'] });
+        }
+    });
+</script>

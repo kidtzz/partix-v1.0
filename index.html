@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PARTIX - POS & Inventory System</title>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- BoxIcons for beautiful icons -->
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <!-- Include CSS via Apps Script -->
+    <?!= include('css'); ?>
+</head>
+
+<body>
+    <!-- Login Screen -->
+    <div id="loginScreen" class="glass-effect hidden">
+        <div class="glass-card login-card">
+            <div class="login-logo">
+                <i class='bx bxs-box'></i>
+                <span>PARTIX</span>
+            </div>
+            <div class="login-subtitle">Masuk ke sistem POS & Inventory</div>
+            
+            <form id="loginForm" onsubmit="handleLogin(event); return false;">
+                <div class="input-group" style="text-align: left;">
+                    <label>Email / Username</label>
+                    <input type="text" class="input-control" id="loginEmail" placeholder="admin@example.com" required>
+                </div>
+                <div class="input-group" style="text-align: left;">
+                    <label>Password</label>
+                    <input type="password" class="input-control" id="loginPassword" placeholder="••••••" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 8px;" id="btnLogin">
+                    Login Masuk
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main App UI -->
+    <div class="app-container" id="appContainer" style="display: none;">
+
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar glass-effect">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class='bx bxs-box'></i>
+                    <span>PARTIX</span>
+                </div>
+            </div>
+
+            <ul class="nav-links">
+                <li class="nav-header">Transaksi</li>
+                <li class="nav-item active" data-target="penjualan">
+                    <i class='bx bx-cart-alt'></i>
+                    <span>Penjualan</span>
+                </li>
+                <li class="nav-item" data-target="return">
+                    <i class='bx bx-revision'></i>
+                    <span>Return</span>
+                </li>
+                
+                <li class="nav-header">Inventory</li>
+                <li class="nav-item" data-target="stock">
+                    <i class='bx bx-package'></i>
+                    <span>Stok Barang</span>
+                </li>
+                
+                <li class="nav-header">Admin</li>
+                <li class="nav-item" data-target="admin-harga">
+                    <i class='bx bx-purchase-tag'></i>
+                    <span>Pengaturan Harga</span>
+                </li>
+                <li class="nav-item" data-target="admin-barang">
+                    <i class='bx bx-box'></i>
+                    <span>Master Barang</span>
+                </li>
+                <li class="nav-item" data-target="admin-user">
+                    <i class='bx bx-user-circle'></i>
+                    <span>Manajemen User</span>
+                </li>
+                <li class="nav-item" data-target="admin-transaksi">
+                    <i class='bx bx-history'></i>
+                    <span>Histori Transaksi</span>
+                </li>
+            </ul>
+
+            <div class="user-profile">
+                <div class="avatar">
+                    <i class='bx bx-user'></i>
+                </div>
+                <div class="user-info">
+                    <span class="user-name" id="displayUserName">Memuat...</span>
+                    <span class="user-role" id="displayUserRole">Role</span>
+                </div>
+                <button class="btn-icon" title="Logout" onclick="handleLogout()" style="margin-left: auto; color: var(--danger-color);">
+                    <i class='bx bx-log-out'></i>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Topbar (Optional, can be used for global search/notifications) -->
+            <header class="topbar">
+                <div class="date-time" id="currentDateTime">--/--/---- --:--</div>
+                <div class="status-indicator">
+                    <span class="status-dot online"></span>
+                    <span>Terhubung ke System</span>
+                </div>
+            </header>
+
+            <!-- Views Container -->
+            <div class="views-container">
+                <!-- Partials will be injected here. In SPA, we hide/show these containers. -->
+
+                <section id="view-penjualan" class="view-section active">
+                    <?!= include('partial_penjualan'); ?>
+                </section>
+
+                <section id="view-stock" class="view-section">
+                    <?!= include('partial_stock'); ?>
+                </section>
+
+                <section id="view-return" class="view-section">
+                    <?!= include('partial_return'); ?>
+                </section>
+
+                <!-- partial_admin includes multiple section tags -->
+                <?!= include('partial_admin'); ?>
+
+            </div>
+        </main>
+
+    </div>
+
+    <!-- Global Notifications Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Include JS via Apps Script -->
+    <?!= include('js'); ?>
+</body>
+
+</html>
