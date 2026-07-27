@@ -734,4 +734,110 @@
         margin-bottom: 16px;
     }
 
+    /* ==========================================
+       MOBILE RESPONSIVENESS
+       ========================================== */
+    .mobile-menu-toggle {
+        display: none;
+        background: none;
+        border: none;
+        font-size: 24px;
+        color: var(--text-main);
+        cursor: pointer;
+        padding: 4px;
+    }
+    
+    .sidebar-overlay {
+        display: none;
+        position: fixed;
+        top: 0; left: 0; width: 100vw; height: 100vh;
+        background: rgba(0,0,0,0.5);
+        z-index: 99;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    
+    .sidebar-overlay.active {
+        display: block;
+        opacity: 1;
+    }
+
+    @media (max-width: 992px) {
+        .grid {
+            grid-template-columns: 1fr !important;
+        }
+        
+        .pos-container {
+            grid-template-columns: 1fr;
+            height: auto;
+            overflow: visible;
+        }
+        
+        .pos-left, .pos-right {
+            border-right: none;
+            overflow-y: visible;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .sidebar {
+            transform: translateX(-100%);
+            position: fixed;
+            z-index: 100;
+            width: 260px;
+            box-shadow: 4px 0 24px rgba(0,0,0,0.1);
+        }
+
+        .sidebar.active {
+            transform: translateX(0);
+        }
+
+        .main-content {
+            margin-left: 0;
+            width: 100%;
+        }
+
+        .topbar {
+            padding: 12px 20px;
+            gap: 16px;
+            justify-content: flex-start;
+        }
+
+        .mobile-menu-toggle {
+            display: block;
+            margin-right: 12px;
+        }
+
+        .date-time {
+            font-size: 14px;
+        }
+
+        .status-indicator span:last-child {
+            display: none; /* Hide text on small screens, keep the dot */
+        }
+        
+        .card {
+            padding: 16px;
+        }
+
+        .table-container {
+            overflow-x: auto; /* Enable horizontal scroll for tables */
+        }
+        
+        .modal-content {
+            width: 95%;
+            margin: 10px auto;
+            padding: 20px;
+        }
+        
+        .grid-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 16px;
+        }
+        
+        .grid-header input {
+            width: 100%;
+        }
+    }
 </style>

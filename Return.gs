@@ -131,6 +131,10 @@ function prosesReturn(noInvoice, itemsReturn, jenisPenyelesaian, selisihBayar) {
       }
     }
     
+    try {
+      logActivity("CREATE", "Return", `Transaksi return baru: ${noReturn} (Invoice asal: ${noInvoice})`);
+    } catch (e) {}
+    
     return { success: true, noReturn: noReturn };
     
   } finally {

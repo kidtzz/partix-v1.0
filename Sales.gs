@@ -174,6 +174,10 @@ function simpanTransaksi(cartItems, tipeHarga, metodeBayar, detailBayar, uangDit
       }
     }
     
+    try {
+      logActivity("CREATE", "Penjualan", `Transaksi penjualan baru: ${noInvoice} (Total: Rp ${total})`);
+    } catch (e) {}
+    
     return { success: true, noInvoice: noInvoice, kembalian: kembalian, status: finalStatus };
     
   } finally {
@@ -254,6 +258,11 @@ function _voidTransaksiInternal(noInvoice, requireAdminCheck) {
     }
     
     SheetService.updateRow("Penjualan", noInvoice, { status_transaksi: "Void" });
+    
+    try {
+      logActivity("UPDATE", "Penjualan", `Void transaksi penjualan: ${noInvoice}`);
+    } catch (e) {}
+    
     return true;
   } finally {
     lock.releaseLock();
@@ -286,4 +295,10 @@ function cariTransaksi(filterQuery) {
     }
     return false;
   });
+}
+
+function getDaftarTransaksi() {
+  requireRole(['Admin', 'Kasir']);
+  const penjualan = SheetService.readSheet("Penjualan");
+  return penjualan.sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
 }

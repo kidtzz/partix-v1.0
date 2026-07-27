@@ -126,11 +126,35 @@ const SheetService = (function() {
     return true;
   }
 
+  function deleteRow(sheetName, primaryKeyValue) {
+    const sheet = getSheet(sheetName);
+    const dataRange = sheet.getDataRange();
+    const values = dataRange.getValues();
+    
+    if (values.length <= 1) return false;
+    
+    let targetRowIndex = -1;
+    for (let i = 1; i < values.length; i++) {
+      if (values[i][0] == primaryKeyValue) {
+        targetRowIndex = i;
+        break;
+      }
+    }
+    
+    if (targetRowIndex === -1) {
+      throw new Error(`Data dengan ID ${primaryKeyValue} tidak ditemukan.`);
+    }
+    
+    sheet.deleteRow(targetRowIndex + 1);
+    return true;
+  }
+
   // Expose API
   return {
     readSheet: readSheet,
     appendRow: appendRow,
     updateRow: updateRow,
-    findRow: findRow
+    findRow: findRow,
+    deleteRow: deleteRow
   };
 })();

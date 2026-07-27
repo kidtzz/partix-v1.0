@@ -23,6 +23,11 @@ function scanBarcodeStock(barcode) {
   if (!barang) {
     throw new Error(`Barang dengan barcode ${barcode} tidak ditemukan.`);
   }
+  
+  try {
+    logActivity("READ", "Scan Barcode", `Scan barcode: ${barcode}`);
+  } catch (e) {}
+
   return barang;
 }
 
@@ -78,6 +83,10 @@ function inputBarangMasuk(idBarang, idSupplier, qtyBox, hargaBeli, tanggal, noIn
     
     SheetService.updateRow("Barang", idBarang, { stok_saat_ini: stokBaru });
     
+    try {
+      logActivity("CREATE", "Stok Barang", `Barang Masuk: ${idBarang}, Qty: ${qtyBox} Box`);
+    } catch (e) {}
+    
     return { success: true, stokBaru: stokBaru };
   } finally {
     lock.releaseLock();
@@ -122,6 +131,10 @@ function penyesuaianStok(idBarang, qtyAdjusment, keterangan) {
     
     SheetService.updateRow("Barang", idBarang, { stok_saat_ini: stokBaru });
     
+    try {
+      logActivity("UPDATE", "Penyesuaian Stok", `Barang: ${idBarang}, Adj: ${qtyAdjusment}`);
+    } catch (e) {}
+    
     return { success: true, stokBaru: stokBaru };
   } finally {
     lock.releaseLock();
@@ -153,7 +166,7 @@ function cekStokMinimum() {
  * Update atau tambah harga jual
  * Sesuai PRD v1.1, satu row mencakup 3 harga (Regular, Langganan, Teman)
  */
-function updateHargaJual(idBarang, hargaRegular, hargaLangganan, hargaTeman, keteranganPerubahan = "") {
+function updateHargaJual(idBarang, hargaRegular, keteranganPerubahan = "") {
   requireRole(['Admin']);
   
   const lock = LockService.getScriptLock();
@@ -169,21 +182,85 @@ function updateHargaJual(idBarang, hargaRegular, hargaLangganan, hargaTeman, ket
       }
     });
     
+    // Ambil setting diskon global
+    let diskonLangganan = 10;
+    let diskonTeman = 20;
+    try {
+      const dataPengaturan = SheetService.readSheet("Pengaturan");
+      dataPengaturan.forEach(row => {
+        if(row.kunci === "DISKON_LANGGANAN") diskonLangganan = Number(row.nilai) || 0;
+        if(row.kunci === "DISKON_TEMAN") diskonTeman = Number(row.nilai) || 0;
+      });
+    } catch(e) {}
+    
+    // Hitung harga (dengan pembulatan ke bawah kelipatan 100 agar rapi)
+    const basePrice = Number(hargaRegular) || 0;
+    const calcLangganan = basePrice * (1 - (diskonLangganan / 100));
+    const calcTeman = basePrice * (1 - (diskonTeman / 100));
+    
+    const finalLangganan = Math.floor(calcLangganan / 100) * 100;
+    const finalTeman = Math.floor(calcTeman / 100) * 100;
+    
     // Insert harga baru
     const newIdHarga = "HRG-" + new Date().getTime();
     SheetService.appendRow("Harga", {
       id_harga: newIdHarga,
       id_barang: idBarang,
-      harga_regular: Number(hargaRegular) || 0,
-      harga_langganan: Number(hargaLangganan) || 0,
-      harga_teman: Number(hargaTeman) || 0,
+      harga_regular: basePrice,
+      harga_langganan: finalLangganan,
+      harga_teman: finalTeman,
       tanggal_berlaku: new Date().toISOString(),
       status_harga: "Aktif",
       keterangan_perubahan: keteranganPerubahan
     });
     
+    try {
+      logActivity("UPDATE", "Harga Jual", `Update harga untuk barang ${idBarang}`);
+    } catch (e) {}
+    
     return { success: true };
   } finally {
     lock.releaseLock();
   }
+}
+
+function getHistoriBarang(idBarang) {
+  requireRole(['Admin', 'Restocker']);
+  
+  const movements = SheetService.readSheet("Stock_Movement").filter(m => m.id_barang === idBarang);
+  const prices = SheetService.readSheet("Harga").filter(h => h.id_barang === idBarang);
+  
+  let history = [];
+  
+  movements.forEach(m => {
+    history.push({
+      tanggal: m.tanggal,
+      jenis: 'Stok (' + m.tipe_pergerakan + ')',
+      deskripsi: (m.qty_box > 0 || m.qty_pcs > 0) ? `${m.qty_box > 0 ? m.qty_box + ' Box ' : ''}${m.qty_pcs > 0 ? m.qty_pcs + ' Pcs ' : ''}- ${m.alasan_perubahan}` : m.alasan_perubahan,
+      user: m.user || 'Sistem'
+    });
+  });
+  
+  prices.forEach(h => {
+    // Keterangan perubahan format: Update Harga via Admin Panel oleh [Nama User]
+    let user = 'Sistem';
+    let ket = h.keterangan_perubahan || '';
+    if (ket.includes(' oleh ')) {
+      const parts = ket.split(' oleh ');
+      user = parts[1];
+      ket = parts[0];
+    }
+    
+    history.push({
+      tanggal: h.tanggal_berlaku,
+      jenis: 'Harga',
+      deskripsi: `Reg: Rp${h.harga_regular}, Lgn: Rp${h.harga_langganan}, Tmn: Rp${h.harga_teman} (${ket})`,
+      user: user
+    });
+  });
+  
+  // Sort descending by tanggal
+  history.sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
+  
+  return history;
 }

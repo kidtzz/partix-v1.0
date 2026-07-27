@@ -112,3 +112,41 @@ function formatRupiah(number) {
     minimumFractionDigits: 0
   }).format(number);
 }
+
+/**
+ * Mencatat aktivitas ke dalam log database terpisah (PARTIX-LOG-DB).
+ * @param {string} action - Aksi yang dilakukan (contoh: "CREATE", "UPDATE", "DELETE")
+ * @param {string} module - Modul tempat aksi dilakukan (contoh: "Master Barang", "Supplier")
+ * @param {string} details - Detail perubahan atau deskripsi aksi
+ */
+function logActivity(action, module, details) {
+  try {
+    const logSheetId = PropertiesService.getScriptProperties().getProperty('LOG_SHEET_ID');
+    if (!logSheetId) {
+      Logger.log("LOG_SHEET_ID tidak ditemukan. Log tidak dicatat.");
+      return;
+    }
+    
+    const ss = SpreadsheetApp.openById(logSheetId);
+    const sheet = ss.getSheetByName("Log_Activity");
+    if (!sheet) return;
+    
+    // Ambil data user yang sedang login (dapat menggunakan getCurrentUserRole atau dari session dummy)
+    const currentUser = getCurrentUserRole() || { username: "System", role: "System" };
+    const idLog = "LOG-" + new Date().getTime();
+    
+    const rowData = [
+      idLog,
+      new Date().toISOString(),
+      currentUser.username,
+      currentUser.role,
+      action,
+      module,
+      details
+    ];
+    
+    sheet.appendRow(rowData);
+  } catch (e) {
+    Logger.log("Gagal mencatat log aktivitas: " + e.message);
+  }
+}

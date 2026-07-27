@@ -6,28 +6,34 @@
 /**
  * Endpoint login dari frontend
  */
-function loginUser(email, password) {
-  if (!email || !password) {
-    throw new Error("Email dan Password tidak boleh kosong.");
+function loginUser(usernameInput, password) {
+  if (!usernameInput || !password) {
+    throw new Error("Username dan Password tidak boleh kosong.");
   }
   
-  const userRecord = SheetService.findRow("Users", "email", email);
+  const userRecord = SheetService.findRow("Users", "username", usernameInput);
   
   if (!userRecord) {
-    throw new Error(`Login Gagal: Email ${email} tidak terdaftar.`);
+    throw new Error(`Login Gagal: Username ${usernameInput} tidak terdaftar.`);
   }
   
   if (userRecord.status !== "Aktif") {
-    throw new Error(`Login Gagal: Akun ${email} berstatus Nonaktif.`);
+    throw new Error(`Login Gagal: Akun ${usernameInput} berstatus Nonaktif.`);
   }
   
   if (String(userRecord.password) !== String(password)) {
     throw new Error("Login Gagal: Password salah.");
   }
   
+  // Mencatat log login berhasil
+  try {
+    logActivity("LOGIN", "Auth", `User ${userRecord.username} berhasil login ke sistem`);
+  } catch(e) {}
+  
   return {
-    email: userRecord.email,
-    nama: userRecord.nama,
+    username: userRecord.username,
+    email: userRecord.username, // Compatibility for frontend
+    nama: userRecord.nama_lengkap,
     role: userRecord.role
   };
 }
@@ -42,11 +48,12 @@ function loginUser(email, password) {
 function getCurrentUserRole() {
   const email = Session.getActiveUser().getEmail();
   if (!email) return null;
-  const userRecord = SheetService.findRow("Users", "email", email);
+  const userRecord = SheetService.findRow("Users", "username", email);
   if (!userRecord || userRecord.status !== "Aktif") return null;
   return {
-    email: userRecord.email,
-    nama: userRecord.nama,
+    username: userRecord.username,
+    email: userRecord.username,
+    nama: userRecord.nama_lengkap,
     role: userRecord.role
   };
 }

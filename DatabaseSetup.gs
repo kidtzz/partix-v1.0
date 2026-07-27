@@ -20,14 +20,15 @@ const DB_SCHEMA = {
   "Return": ["no_return", "no_invoice", "tanggal", "kasir", "jenis_return", "selisih_harga", "alasan_return", "status"],
   "Return_Detail": ["id_detail", "no_return", "id_barang_direturn", "qty_direturn", "id_barang_pengganti", "qty_pengganti"],
   "Users": ["username", "password", "nama_lengkap", "role", "status"],
-  "Profil_Toko": ["id_profil", "nama_toko", "logo_toko", "alamat_toko", "nomor_telepon", "footer_invoice"]
+  "Profil_Toko": ["id_profil", "nama_toko", "logo_toko", "alamat_toko", "nomor_telepon", "footer_invoice"],
+  "Pengaturan": ["kunci", "nilai"]
 };
 
 function installDatabase(existingSheetId) {
   Logger.log("Memulai proses setup database v1.1...");
   
   let ss;
-  let ssId = existingSheetId || EXISTING_SPREADSHEET_ID;
+  let ssId = existingSheetId || EXISTING_SPREADSHEET_ID || PropertiesService.getScriptProperties().getProperty("SHEET_ID");
   
   if (ssId) {
     try {
@@ -102,6 +103,11 @@ function installDatabase(existingSheetId) {
   const profilSheet = ss.getSheetByName("Profil_Toko");
   profilSheet.appendRow(["PROF-01", "Bengkel Partix Motor", "", "Jl. Raya Bogor No 10", "081234567890", "Terima Kasih atas Kunjungan Anda"]);
   
+  // 2.5 Pengaturan Diskon Default
+  const pengaturanSheet = ss.getSheetByName("Pengaturan");
+  pengaturanSheet.appendRow(["DISKON_LANGGANAN", "10"]);
+  pengaturanSheet.appendRow(["DISKON_TEMAN", "20"]);
+  
   // 3. Supplier
   const supplierSheet = ss.getSheetByName("Supplier");
   supplierSheet.appendRow(["SUP-001", "PT Astra Otoparts", "Budi Santoso", "08123456789", "budi@astra.co.id", "Jl. Sudirman No. 1, Jakarta", "Aktif"]);
@@ -126,5 +132,55 @@ function installDatabase(existingSheetId) {
   hargaSheet.appendRow(["HRG-002", "BRG-00002", 15000, 14000, 13000, today, "Aktif", "Harga Awal Setup"]);
   hargaSheet.appendRow(["HRG-003", "BRG-00003", 30000, 28000, 25000, today, "Aktif", "Harga Awal Setup"]);
   
-  Logger.log("SETUP SELESAI!");
+  Logger.log("SETUP DATABASE UTAMA SELESAI!");
+  
+  // Otomatis jalankan setup Log DB juga agar user tidak bingung
+  installLogDatabase();
+}
+
+function installLogDatabase(existingSheetId) {
+  Logger.log("Memulai proses setup Log Database...");
+  
+  let ss;
+  let ssId = existingSheetId || PropertiesService.getScriptProperties().getProperty('LOG_SHEET_ID');
+  
+  if (ssId) {
+    try {
+      ss = SpreadsheetApp.openById(ssId);
+      Logger.log("Menggunakan Log Spreadsheet yang sudah ada: " + ssId);
+    } catch (e) {
+      Logger.log("Gagal membuka Log Spreadsheet ID: " + ssId + ". Membuat baru...");
+      ss = null;
+    }
+  } 
+  
+  if (!ss) {
+    ss = SpreadsheetApp.create("PARTIX-LOG-DB");
+    Logger.log("Spreadsheet PARTIX-LOG-DB baru berhasil dibuat.");
+  }
+  
+  ssId = ss.getId();
+  PropertiesService.getScriptProperties().setProperty("LOG_SHEET_ID", ssId);
+  
+  const sheetName = "Log_Activity";
+  let sheet = ss.getSheetByName(sheetName);
+  
+  if (!sheet) {
+    sheet = ss.insertSheet(sheetName);
+  }
+  
+  const headers = ["id_log", "timestamp", "username", "role", "action", "module", "details"];
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  sheet.getRange(1, 1, 1, headers.length).setFontWeight("bold").setBackground("#d9ead3");
+  sheet.setFrozenRows(1);
+  
+  const defaultSheet = ss.getSheetByName("Sheet1");
+  if (defaultSheet) {
+    try {
+      ss.deleteSheet(defaultSheet);
+    } catch(e) {}
+  }
+  
+  Logger.log("Setup Log Database selesai. LOG_SHEET_ID Anda adalah: " + ssId);
+  Logger.log("LINK SPREADSHEET LOG ANDA: " + ss.getUrl());
 }

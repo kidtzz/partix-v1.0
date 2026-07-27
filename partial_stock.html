@@ -2,15 +2,15 @@
     <h2 class="view-title mb-0">
         <i class='bx bx-package'></i> Manajemen Stok Barang
     </h2>
-    
+
     <div class="flex gap-4">
         <div class="search-bar">
             <i class='bx bx-search'></i>
             <input type="text" id="stockSearch" placeholder="Cari nama barang atau kode...">
         </div>
-        
+
         <button class="btn btn-primary" onclick="openStockModal()">
-            <i class='bx bx-plus'></i> Barang Masuk
+            <i class='bx bx-plus'></i> Tambah
         </button>
     </div>
 </div>
@@ -25,11 +25,14 @@
                 <th>Harga Jual (Reg)</th>
                 <th>Stok Tersedia</th>
                 <th>Status</th>
+                <th>Histori</th>
                 <th>Aksi</th>
             </tr>
         </thead>
         <tbody id="stockTableBody">
-            <tr><td colspan="7" style="text-align:center; padding:20px;">Memuat data stok...</td></tr>
+            <tr>
+                <td colspan="8" style="text-align:center; padding:20px;">Memuat data stok...</td>
+            </tr>
         </tbody>
     </table>
 </div>
@@ -45,14 +48,17 @@
             <div class="input-group">
                 <label>Scan Barcode / ID Barang</label>
                 <div style="display:flex; gap:8px;">
-                    <input type="text" class="input-control" id="scanStock" placeholder="Scan Barcode..." onkeypress="handleScanStock(event)">
-                    <button class="btn btn-secondary" onclick="lookupStockBarcode()"><i class='bx bx-search'></i></button>
+                    <input type="text" class="input-control" id="scanStock" placeholder="Scan Barcode..."
+                        onkeypress="handleScanStock(event)">
+                    <button class="btn btn-secondary" onclick="lookupStockBarcode()"><i
+                            class='bx bx-search'></i></button>
                 </div>
             </div>
-            
+
             <div class="input-group">
                 <label>Nama Barang (Auto-fill)</label>
-                <input type="text" class="input-control" id="stkNamaBarang" value="" disabled style="background:#F3F4F6;">
+                <input type="text" class="input-control" id="stkNamaBarang" value="" disabled
+                    style="background:#F3F4F6;">
                 <input type="hidden" id="stkIdBarang">
             </div>
 
@@ -60,7 +66,7 @@
                 <label>ID Supplier</label>
                 <input type="text" class="input-control" id="stkIdSupplier" placeholder="Cth: SUP-001">
             </div>
-            
+
             <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 16px;">
                 <div class="input-group">
                     <label>Qty (Box)</label>
@@ -71,7 +77,7 @@
                     <input type="number" class="input-control" id="stkHargaBeli" placeholder="Rp">
                 </div>
             </div>
-            
+
             <div class="input-group mt-3">
                 <label>Tanggal Masuk</label>
                 <input type="date" class="input-control" id="stkTanggal" value="">
@@ -79,7 +85,34 @@
         </div>
         <div class="modal-footer">
             <button class="btn btn-secondary" onclick="closeStockModal()">Batal</button>
-            <button class="btn btn-primary" id="btnSimpanStok" onclick="simpanBarangMasuk()">Simpan Stok</button>
+            <button class="btn btn-primary" id="btnSimpanStok" onclick="simpanBarangMasuk()">Simpan</button>
+        </div>
+    </div>
+</div>
+
+
+<!-- Modal Histori -->
+<div class="modal-overlay" id="modalHistoriBarang">
+    <div class="modal-content" style="max-width: 800px;">
+        <div class="modal-header">
+            <h3 id="historiBarangTitle">Histori Barang</h3>
+            <button class="modal-close" onclick="tutupHistoriBarang()"><i class='bx bx-x'></i></button>
+        </div>
+        <div class="modal-body">
+            <div class="table-container" style="max-height: 400px; overflow-y: auto;">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Waktu</th>
+                            <th>Jenis</th>
+                            <th>Deskripsi Perubahan</th>
+                            <th>User</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historiTableBody">
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
@@ -89,31 +122,40 @@
 
     function initStockView() {
         if (AppState.user.role === "Kasir") return; // Akses ditolak untuk kasir
-        
+
         document.getElementById('stkTanggal').value = new Date().toISOString().split('T')[0];
-        
-        BackendAPI.call('getStockList')
-            .then(data => {
-                masterStockList = data;
-                renderStockTable(data);
-            })
-            .catch(err => {
-                document.getElementById('stockTableBody').innerHTML = `<tr><td colspan="7" style="color:red; text-align:center;">Error: ${err.message}</td></tr>`;
-            });
+
+        Promise.all([
+            BackendAPI.call('getStockList'),
+            BackendAPI.call('getPengaturanDiskon')
+        ]).then(([data, diskon]) => {
+            if (typeof globalDiskon !== 'undefined') {
+                globalDiskon = diskon;
+            } else {
+                window.globalDiskon = diskon;
+            }
+            masterStockList = data;
+            renderStockTable(data, diskon.MINIMUM_STOK || 5);
+        }).catch(err => {
+            document.getElementById('stockTableBody').innerHTML = `<tr><td colspan="7" style="color:red; text-align:center;">Error: ${err.message}</td></tr>`;
+        });
     }
 
-    function renderStockTable(data) {
+    function renderStockTable(data, minStokGlobal) {
         const tbody = document.getElementById('stockTableBody');
         if (data.length === 0) {
             tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Tidak ada data barang.</td></tr>`;
             return;
         }
-        
+
+        const currentMinStok = minStokGlobal !== undefined ? minStokGlobal : (typeof globalDiskon !== 'undefined' ? (globalDiskon.MINIMUM_STOK || 5) : 5);
+
         tbody.innerHTML = data.map(b => {
             const stok = Number(b.stok_saat_ini) || 0;
-            const isWarning = stok <= (Number(b.stok_minimum) || 0);
-            const statusBadge = b.status === "Aktif" ? "badge-success" : "badge-secondary";
-            
+            const isWarning = stok <= currentMinStok;
+            const statusVal = b.status_barang || 'Aktif';
+            const statusBadge = statusVal === "Aktif" ? "badge-success" : "badge-secondary";
+
             return `
             <tr>
                 <td>${b.id_barang}</td>
@@ -122,12 +164,15 @@
                 <td>-</td>
                 <td>
                     <span style="color: ${isWarning ? 'var(--warning-color)' : 'inherit'}; font-weight: ${isWarning ? '600' : '400'};">
-                        ${stok} PCS
+                        ${stok} BOX
                     </span>
                 </td>
-                <td><span class="badge ${statusBadge}">${b.status}</span></td>
+                <td><span class="badge ${statusBadge}">${statusVal}</span></td>
                 <td>
-                    <button class="btn-icon" title="Histori"><i class='bx bx-history'></i></button>
+                    <button class="btn btn-secondary btn-sm" onclick="bukaHistoriBarang('${b.id_barang}', '${b.nama_barang}')"><i class='bx bx-history'></i> Histori</button>
+                </td>
+                <td>
+                    <button class="btn btn-secondary btn-sm" onclick="toggleStatusBarang('${b.id_barang}', '${statusVal}')"><i class='bx bx-refresh'></i> Ubah Status</button>
                 </td>
             </tr>
             `;
@@ -135,21 +180,67 @@
     }
 
     // Search filter
-    document.getElementById('stockSearch').addEventListener('keyup', function(e) {
+    document.getElementById('stockSearch').addEventListener('input', function (e) {
         const keyword = this.value.toLowerCase();
-        const filtered = masterStockList.filter(b => 
-            b.nama_barang.toLowerCase().includes(keyword) || 
-            b.barcode.toLowerCase().includes(keyword) ||
-            b.id_barang.toLowerCase().includes(keyword)
+        const filtered = masterStockList.filter(b =>
+            String(b.nama_barang || '').toLowerCase().includes(keyword) ||
+            String(b.barcode || '').toLowerCase().includes(keyword) ||
+            String(b.id_barang || '').toLowerCase().includes(keyword)
         );
         renderStockTable(filtered);
     });
+
+    function bukaHistoriBarang(idBarang, namaBarang) {
+        document.getElementById('modalHistoriBarang').classList.add('active');
+        document.getElementById('historiBarangTitle').textContent = `Histori Barang: ${namaBarang}`;
+        const tbody = document.getElementById('historiTableBody');
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;"><i class='bx bx-loader-alt bx-spin'></i> Memuat histori...</td></tr>`;
+
+        BackendAPI.call('getHistoriBarang', [idBarang])
+            .then(data => {
+                if (data.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">Belum ada histori.</td></tr>`;
+                    return;
+                }
+                tbody.innerHTML = data.map(h => {
+                    const date = new Date(h.tanggal).toLocaleString('id-ID');
+                    return `
+                    <tr>
+                        <td>${date}</td>
+                        <td><span class="badge badge-secondary">${h.jenis}</span></td>
+                        <td>${h.deskripsi}</td>
+                        <td>${h.user}</td>
+                    </tr>
+                    `;
+                }).join('');
+            })
+            .catch(err => {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:red;">Error: ${err.message}</td></tr>`;
+            });
+    }
+
+    function tutupHistoriBarang() {
+        document.getElementById('modalHistoriBarang').classList.remove('active');
+    }
+
+    function toggleStatusBarang(idBarang, currentStatus) {
+        const statusBaru = currentStatus === 'Aktif' ? 'Nonaktif' : 'Aktif';
+        if (!confirm(`Ubah status barang ini menjadi ${statusBaru}?`)) return;
+
+        showToast('Menyimpan status...');
+        BackendAPI.call('updateStatusBarang', [idBarang, statusBaru])
+            .then(() => {
+                showToast(`Status berhasil diubah menjadi ${statusBaru}`, 'success');
+                loadStockData(); // Refresh table
+            })
+            .catch(err => showToast(err.message, 'error'));
+    }
 
     function openStockModal() {
         document.getElementById('modalStockIn').classList.add('active');
         setTimeout(() => document.getElementById('scanStock').focus(), 100);
     }
-    
+
     function closeStockModal() {
         document.getElementById('modalStockIn').classList.remove('active');
         document.getElementById('scanStock').value = '';
@@ -165,11 +256,11 @@
             lookupStockBarcode();
         }
     }
-    
+
     function lookupStockBarcode() {
         const barcode = document.getElementById('scanStock').value.trim();
-        if(!barcode) return;
-        
+        if (!barcode) return;
+
         showToast("Mencari barang...");
         BackendAPI.call('scanBarcodeStock', [barcode])
             .then(b => {
@@ -187,25 +278,31 @@
         const qtyBox = Number(document.getElementById('stkQtyBox').value);
         const hargaBeli = Number(document.getElementById('stkHargaBeli').value);
         const tanggal = document.getElementById('stkTanggal').value;
-        
+
         if (!idBarang || !qtyBox || !tanggal) {
             return showToast("Lengkapi form dengan benar!", "error");
         }
-        
+
         const btn = document.getElementById('btnSimpanStok');
         btn.disabled = true;
         btn.innerHTML = "Menyimpan...";
-        
+
         BackendAPI.call('inputBarangMasuk', [idBarang, idSupplier, qtyBox, hargaBeli, tanggal])
             .then(res => {
                 showToast('Barang masuk berhasil disimpan', 'success');
                 closeStockModal();
-                initStockView(); // Refresh table
+
+                const b = masterStockList.find(x => x.id_barang === idBarang);
+                if (b) {
+                    const isiPerBox = Number(b.isi_per_box) || 1;
+                    b.stok_saat_ini = (Number(b.stok_saat_ini) || 0) + (qtyBox * isiPerBox);
+                }
+                renderStockTable(masterStockList);
             })
             .catch(err => showToast(err.message, 'error'))
             .finally(() => {
                 btn.disabled = false;
-                btn.innerHTML = "Simpan Stok";
+                btn.innerHTML = "Simpan";
             });
     }
 
