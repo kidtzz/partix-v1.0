@@ -10,8 +10,13 @@ function getBarangUntukPOS() {
   
   // Ambil hanya harga yang aktif
   const hargaAktif = hargaList.filter(h => h.status_harga === "Aktif");
+  const bsList = SheetService.readSheet("Barang_Supplier").filter(bs => bs.status === "Aktif");
   
   return barangList.filter(b => b.status_barang === "Aktif").map(b => {
+    // Harga modal dari supplier tertinggi
+    const supplierPrices = bsList.filter(bs => bs.id_barang === b.id_barang).map(bs => Number(bs.harga_beli));
+    const maxHargaBeli = supplierPrices.length > 0 ? Math.max(...supplierPrices) : 0;
+
     // Harga sekarang satu baris per barang
     const h = hargaAktif.find(h => h.id_barang === b.id_barang);
     let mappedHarga = {
@@ -24,7 +29,9 @@ function getBarangUntukPOS() {
       id_barang: b.id_barang,
       nama_barang: b.nama_barang,
       stok_saat_ini: Number(b.stok_saat_ini),
-      barcode: b.barcode,
+      barcode1: b.barcode1,
+      barcode2: b.barcode2,
+      harga_modal: maxHargaBeli,
       harga: mappedHarga
     };
   });

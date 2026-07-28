@@ -115,9 +115,9 @@ function installDatabase(existingSheetId) {
 
   // 4. Barang
   const barangSheet = ss.getSheetByName("Barang");
-  barangSheet.appendRow(["BRG-00001", "8998989,123456", "Oli Pertamina Enduro 4T", "Oli", "Pertamina", "BOTOL", 24, "Rak A1", 10, 50, "Aktif"]);
-  barangSheet.appendRow(["BRG-00002", "777777", "Busi NGK C7HSA", "Sparepart", "NGK", "PCS", 10, "Rak B2", 5, 20, "Aktif"]);
-  barangSheet.appendRow(["BRG-00003", "55555", "Kampas Rem Depan Supra", "Sparepart", "Honda", "SET", 50, "Rak C3", 5, 15, "Aktif"]);
+  barangSheet.appendRow(["BRG-00001", "8998989, 123456", "Oli Pertamina Enduro 4T", "Oli", "Pertamina", "BOTOL", 24, "Rak A1", 10, 50, "Aktif"]);
+  barangSheet.appendRow(["BRG-00002", "777777, 888888", "Busi NGK C7HSA", "Sparepart", "NGK", "PCS", 10, "Rak B2", 5, 20, "Aktif"]);
+  barangSheet.appendRow(["BRG-00003", "55555, 66666", "Kampas Rem Depan Supra", "Sparepart", "Honda", "SET", 50, "Rak C3", 5, 15, "Aktif"]);
 
   // 5. Barang_Supplier
   const barangSupplierSheet = ss.getSheetByName("Barang_Supplier");
