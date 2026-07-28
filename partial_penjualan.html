@@ -101,7 +101,12 @@
                 <i class='bx bx-check-circle'></i> Bayar Sekarang
             </button>
         </div>
-    </div>
+    <!-- Mobile Floating Cart Button -->
+    <button class="mobile-cart-toggle-btn" id="mobileCartToggleBtn" onclick="scrollToCartMobile()">
+        <i class='bx bx-cart-alt'></i>
+        <span>Keranjang Belanja</span>
+        <span class="cart-badge-count" id="mobileCartCount">0</span>
+    </button>
 </div>
 
 <style>
@@ -416,8 +421,12 @@
     function renderCart() {
         const container = document.getElementById('cartItemsContainer');
         const countBadge = document.getElementById('cartItemCount');
+        const mobileBtn = document.getElementById('mobileCartToggleBtn');
+        const mobileCount = document.getElementById('mobileCartCount');
         const tipeHarga = document.getElementById('tipeHarga').value;
         
+        const totalItems = posCart.reduce((sum, item) => sum + item.qty, 0);
+
         if (posCart.length === 0) {
             container.innerHTML = `
                 <div class="empty-cart-state">
@@ -426,6 +435,7 @@
                 </div>
             `;
             countBadge.textContent = '0 Item';
+            if (mobileBtn) mobileBtn.style.display = 'none';
         } else {
             container.innerHTML = posCart.map(item => {
                 const hargaSatuan = item.harga[tipeHarga] || 0;
@@ -448,11 +458,21 @@
                 </div>
             `}).join('');
             
-            const totalItems = posCart.reduce((sum, item) => sum + item.qty, 0);
             countBadge.textContent = `${totalItems} Item`;
+            if (mobileBtn && window.innerWidth <= 1024) {
+                mobileBtn.style.display = 'flex';
+                if (mobileCount) mobileCount.textContent = totalItems;
+            }
         }
         
         updateCartTotal();
+    }
+
+    function scrollToCartMobile() {
+        const cartEl = document.querySelector('.pos-cart');
+        if (cartEl) {
+            cartEl.scrollIntoView({ behavior: 'smooth' });
+        }
     }
 
     function updateCartTotal() {
