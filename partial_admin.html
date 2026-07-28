@@ -37,7 +37,7 @@
                 </div>
             </div>
             <div style="text-align: right; margin-top: auto; padding-top: 16px;">
-                <button class="btn btn-primary" onclick="simpanDiskon()" id="btnSimpanDiskon1">
+                <button class="btn btn-primary" onclick="simpanPengaturanDiskon()" id="btnSimpanDiskon1">
                     <i class='bx bx-save'></i> Simpan Diskon
                 </button>
             </div>
@@ -54,7 +54,7 @@
                 <small style="color: var(--text-muted); display: block; margin-top: 4px;">Peringatan stok kritis akan muncul di Dashboard bila stok barang &le; batas ini.</small>
             </div>
             <div style="text-align: right; margin-top: auto; padding-top: 16px;">
-                <button class="btn btn-primary" onclick="simpanDiskon()" id="btnSimpanDiskon2">
+                <button class="btn btn-primary" onclick="simpanStokMinimum()" id="btnSimpanDiskon2">
                     <i class='bx bx-save'></i> Simpan Stok Minimum
                 </button>
             </div>
@@ -555,36 +555,49 @@
         if (text) text.textContent = bounded + '%';
     }
 
-    function simpanDiskon() {
+    function simpanPengaturanDiskon() {
         const dLan = Number(document.getElementById('settingDiskonLangganan').value) || 0;
         const dTem = Number(document.getElementById('settingDiskonTeman').value) || 0;
-        const mStok = Number(document.getElementById('settingMinimumStok').value) || 0;
+        const mStok = globalDiskon.MINIMUM_STOK || 5;
 
-        const btn1 = document.getElementById('btnSimpanDiskon1');
-        const btn2 = document.getElementById('btnSimpanDiskon2');
-        if (btn1) { btn1.disabled = true; btn1.innerHTML = "Menyimpan..."; }
-        if (btn2) { btn2.disabled = true; btn2.innerHTML = "Menyimpan..."; }
+        const btn = document.getElementById('btnSimpanDiskon1');
+        if (btn) { btn.disabled = true; btn.innerHTML = "Menyimpan..."; }
 
         BackendAPI.call('updatePengaturanDiskon', [dLan, dTem, mStok]).then(() => {
-            showToast("Pengaturan global berhasil disimpan", "success");
+            showToast("Pengaturan Diskon berhasil disimpan", "success");
             globalDiskon.DISKON_LANGGANAN = dLan;
             globalDiskon.DISKON_TEMAN = dTem;
-            globalDiskon.MINIMUM_STOK = mStok;
 
             const lblLan = document.getElementById('labelDiskonLanEdit');
             if (lblLan) lblLan.textContent = dLan;
             const lblTem = document.getElementById('labelDiskonTemEdit');
             if (lblTem) lblTem.textContent = dTem;
 
-            // Re-render table dynamically to reflect new percentages instantly
             if (adminBarangData && adminBarangData.length > 0) {
                 renderAdminHarga(adminBarangData);
             }
         }).catch(err => {
             showToast(err.message, "error");
         }).finally(() => {
-            if (btn1) { btn1.disabled = false; btn1.innerHTML = "<i class='bx bx-save'></i> Simpan Diskon"; }
-            if (btn2) { btn2.disabled = false; btn2.innerHTML = "<i class='bx bx-save'></i> Simpan Stok Minimum"; }
+            if (btn) { btn.disabled = false; btn.innerHTML = "<i class='bx bx-save'></i> Simpan Diskon"; }
+        });
+    }
+
+    function simpanStokMinimum() {
+        const dLan = globalDiskon.DISKON_LANGGANAN || 0;
+        const dTem = globalDiskon.DISKON_TEMAN || 0;
+        const mStok = Number(document.getElementById('settingMinimumStok').value) || 0;
+
+        const btn = document.getElementById('btnSimpanDiskon2');
+        if (btn) { btn.disabled = true; btn.innerHTML = "Menyimpan..."; }
+
+        BackendAPI.call('updatePengaturanDiskon', [dLan, dTem, mStok]).then(() => {
+            showToast("Pengaturan Stok Minimum berhasil disimpan", "success");
+            globalDiskon.MINIMUM_STOK = mStok;
+        }).catch(err => {
+            showToast(err.message, "error");
+        }).finally(() => {
+            if (btn) { btn.disabled = false; btn.innerHTML = "<i class='bx bx-save'></i> Simpan Stok Minimum"; }
         });
     }
 
@@ -805,9 +818,15 @@
                 </td>
             </tr>
             <tr id="detail-${b.id_barang}" style="display:none; background: #fafbfc; border-top: none;">
-                <td colspan="5" style="padding: 16px 24px;">
-                    <div id="detail-content-${b.id_barang}" style="border: 1px solid rgba(0,0,0,0.05); border-radius: 12px; padding: 16px; background: white; box-shadow: 0 4px 12px rgba(0,0,0,0.02);">
-                        <div style="text-align:center; color:var(--text-muted); font-size: 14px;"><i class='bx bx-loader-alt bx-spin'></i> Memuat detail supplier...</div>
+                <td colspan="5" style="padding: 0;">
+                    <div id="detail-wrapper-${b.id_barang}" style="display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.3s ease-in-out;">
+                        <div style="overflow: hidden;">
+                            <div style="padding: 16px 24px;">
+                                <div id="detail-content-${b.id_barang}" style="border: 1px solid rgba(0,0,0,0.05); border-radius: 12px; padding: 16px; background: white; box-shadow: 0 4px 12px rgba(0,0,0,0.02);">
+                                    <div style="text-align:center; color:var(--text-muted); font-size: 14px;"><i class='bx bx-loader-alt bx-spin'></i> Memuat detail supplier...</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </td>
             </tr>
@@ -823,12 +842,37 @@
     let semuaBarangSupplierDataAdmin = null;
 
     function toggleDetailBarang(idBarang) {
+        // Tutup detail row lain yang sedang terbuka dengan animasi
+        const tbody = document.getElementById('adminBarangTableBody');
+        if (tbody) {
+            const allDetailRows = tbody.querySelectorAll('tr[id^="detail-"]');
+            allDetailRows.forEach(row => {
+                if (row.id !== `detail-${idBarang}` && row.style.display !== 'none') {
+                    const rowId = row.id.replace('detail-', '');
+                    const wrapper = document.getElementById(`detail-wrapper-${rowId}`);
+                    if (wrapper) wrapper.style.gridTemplateRows = '0fr';
+                    setTimeout(() => {
+                        if (wrapper && wrapper.style.gridTemplateRows === '0fr') row.style.display = 'none';
+                    }, 300);
+                }
+            });
+        }
+
         const detailRow = document.getElementById(`detail-${idBarang}`);
+        const wrapper = document.getElementById(`detail-wrapper-${idBarang}`);
+        
         if (detailRow.style.display === 'none') {
             detailRow.style.display = 'table-row';
             loadDetailSupplier(idBarang);
+            // Beri jeda sangat singkat agar CSS mengenali status display sebelum merubah max-height
+            setTimeout(() => {
+                if (wrapper) wrapper.style.gridTemplateRows = '1fr';
+            }, 10);
         } else {
-            detailRow.style.display = 'none';
+            if (wrapper) wrapper.style.gridTemplateRows = '0fr';
+            setTimeout(() => {
+                if (wrapper && wrapper.style.gridTemplateRows === '0fr') detailRow.style.display = 'none';
+            }, 300);
         }
     }
 
