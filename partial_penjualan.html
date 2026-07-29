@@ -70,11 +70,14 @@
             </div>
 
             <div class="input-group mt-4">
-                <label>Tipe Harga</label>
+                <label>Tipe Harga / Customer</label>
                 <select class="input-control" id="tipeHarga" onchange="changeTipeHarga()">
-                    <option value="Regular">Regular</option>
-                    <option value="Langganan">Langganan</option>
-                    <option value="Teman">Teman</option>
+                    <option value="Regular" id="optHrgRegular">Regular (0%)</option>
+                    <option value="Member" id="optHrgMember">Member (-5%)</option>
+                    <option value="Langganan" id="optHrgLangganan">Langganan (-10%)</option>
+                    <option value="Bengkel" id="optHrgBengkel">Bengkel / Reseller (-15%)</option>
+                    <option value="Teman" id="optHrgTeman">Teman / Kenalan (-20%)</option>
+                    <option value="Grosir" id="optHrgGrosir">Grosir / VIP (-25%)</option>
                 </select>
             </div>
 
@@ -326,6 +329,19 @@
 
             const grid = document.getElementById('posProductGrid');
             grid.innerHTML = `<div style="padding:20px; text-align:center; grid-column: 1 / -1;"><i class='bx bx-loader-alt bx-spin' style='font-size:24px;'></i> Memuat Data Barang...</div>`;
+
+            BackendAPI.call('getPengaturanDiskon').then(diskon => {
+                const optMem = document.getElementById('optHrgMember');
+                if (optMem) optMem.textContent = `Member (-${diskon.DISKON_MEMBER || 5}%)`;
+                const optLan = document.getElementById('optHrgLangganan');
+                if (optLan) optLan.textContent = `Langganan (-${diskon.DISKON_LANGGANAN || 10}%)`;
+                const optBeng = document.getElementById('optHrgBengkel');
+                if (optBeng) optBeng.textContent = `Bengkel / Reseller (-${diskon.DISKON_BENGKEL || 15}%)`;
+                const optTem = document.getElementById('optHrgTeman');
+                if (optTem) optTem.textContent = `Teman / Kenalan (-${diskon.DISKON_TEMAN || 20}%)`;
+                const optGro = document.getElementById('optHrgGrosir');
+                if (optGro) optGro.textContent = `Grosir / VIP (-${diskon.DISKON_GROSIR || 25}%)`;
+            }).catch(e => {});
 
             BackendAPI.call('getBarangUntukPOS').then(data => {
                 masterBarangPOS = data;

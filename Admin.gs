@@ -13,6 +13,17 @@ function getSemuaBarangAdmin() {
   const hargaList = SheetService.readSheet("Harga").filter(h => h.status_harga === "Aktif");
   
   return barang.map(b => {
+    let bc1 = b.barcode1 || "";
+    let bc2 = b.barcode2 || "";
+    if (!bc1 && b.barcode) {
+      const parts = String(b.barcode).split(',').map(s => s.trim());
+      bc1 = parts[0] || "";
+      bc2 = parts[1] || "";
+    }
+    b.barcode1 = bc1;
+    b.barcode2 = bc2;
+    b.barcode = [bc1, bc2].filter(Boolean).join(', ');
+
     const h = hargaList.find(x => x.id_barang === b.id_barang);
     b.harga = {
       "Regular": h ? Number(h.harga_regular) : 0,
@@ -26,30 +37,42 @@ function getSemuaBarangAdmin() {
 function tambahMasterBarang(data) {
   requireRole(['Admin', 'Restocker']);
   
-  if (!data.nama_barang || !data.kategori) {
-    throw new Error("Nama barang dan kategori wajib diisi.");
+  if (!data.nama_barang) {
+    throw new Error("Nama barang wajib diisi.");
   }
   
-  const barcode = data.barcode || "";
+  let bc1 = (data.barcode1 || "").trim();
+  let bc2 = (data.barcode2 || "").trim();
   
-  if (barcode) {
-    const existing = SheetService.findRow("Barang", "barcode", barcode);
-    if (existing && existing.barcode === barcode) {
-      throw new Error("Barcode sudah digunakan oleh barang lain.");
-    }
+  if (!bc1 && data.barcode) {
+    const parts = String(data.barcode).split(',').map(s => s.trim());
+    bc1 = parts[0] || "";
+    bc2 = parts[1] || "";
   }
-  
+
+  const allBarang = SheetService.readSheet("Barang");
+  if (bc1) {
+    const dup1 = allBarang.find(b => (b.barcode1 === bc1 || b.barcode2 === bc1 || (b.barcode && b.barcode.includes(bc1))));
+    if (dup1) throw new Error(`Barcode 1 (${bc1}) sudah digunakan oleh barang lain.`);
+  }
+  if (bc2) {
+    const dup2 = allBarang.find(b => (b.barcode1 === bc2 || b.barcode2 === bc2 || (b.barcode && b.barcode.includes(bc2))));
+    if (dup2) throw new Error(`Barcode 2 (${bc2}) sudah digunakan oleh barang lain.`);
+  }
+
   const idBarang = generateIdBarang();
   
   const rowData = {
     id_barang: idBarang,
-    barcode: barcode,
+    barcode1: bc1,
+    barcode2: bc2,
     nama_barang: data.nama_barang,
-    kategori: data.kategori,
+    kategori: data.kategori || "",
     merk: data.merk || "",
     satuan: "PCS",
     isi_per_box: Number(data.isi_per_box) || 1,
     lokasi_rak: data.lokasi_rak || "",
+    minimum_stock: Number(data.minimum_stock) || 5,
     stok_saat_ini: Number(data.stok_awal) || 0,
     status_barang: data.status_barang || "Aktif"
   };
@@ -94,14 +117,18 @@ function updateMasterBarang(idBarang, data) {
   
   const oldRow = SheetService.findRow("Barang", "id_barang", idBarang);
   
+  let bc1 = (data.barcode1 !== undefined ? data.barcode1 : (data.barcode ? String(data.barcode).split(',')[0] : '')).trim();
+  let bc2 = (data.barcode2 !== undefined ? data.barcode2 : (data.barcode ? String(data.barcode).split(',')[1] : '')).trim();
+
   const updatedFields = {
-    barcode: data.barcode,
+    barcode1: bc1,
+    barcode2: bc2,
     nama_barang: data.nama_barang,
-    kategori: data.kategori,
-    merk: data.merk,
+    kategori: data.kategori || "",
+    merk: data.merk || "",
     satuan: "PCS",
     isi_per_box: Number(data.isi_per_box) || 1,
-    lokasi_rak: data.lokasi_rak,
+    lokasi_rak: data.lokasi_rak || "",
     stok_saat_ini: Number(data.stok_awal) || 0,
     status_barang: data.status_barang || "Aktif"
   };
@@ -109,13 +136,11 @@ function updateMasterBarang(idBarang, data) {
   SheetService.updateRow("Barang", idBarang, updatedFields);
   logActivity("UPDATE", "Master Barang", `Update barang: ${idBarang} - Status: ${updatedFields.status_barang}`);
   
-  // Hitung perbedaan untuk histori
   if (oldRow) {
     let changes = [];
     if (oldRow.nama_barang !== updatedFields.nama_barang) changes.push(`Nama`);
     if (Number(oldRow.isi_per_box) !== updatedFields.isi_per_box) changes.push(`Isi per Box`);
-    if (Number(oldRow.stok_saat_ini) !== updatedFields.stok_saat_ini) changes.push(`Stok Saat Ini (dari ${oldRow.stok_saat_ini} ke ${updatedFields.stok_saat_ini})`);
-    if (oldRow.kategori !== updatedFields.kategori) changes.push(`Kategori`);
+    if (Number(oldRow.stok_saat_ini) !== updatedFields.stok_saat_ini) changes.push(`Stok Saat Ini`);
     if (oldRow.merk !== updatedFields.merk) changes.push(`Merk`);
     
     if (changes.length > 0) {
@@ -255,7 +280,23 @@ function getHistoriTransaksiAdmin() {
 
 function getSemuaSupplier() {
   requireRole(['Admin', 'Restocker']); 
-  return SheetService.readSheet("Supplier");
+  const suppliers = SheetService.readSheet("Supplier");
+  return suppliers.map(s => {
+    let pics = [];
+    if (s.pic && String(s.pic).trim().startsWith("[")) {
+      try {
+        pics = JSON.parse(s.pic);
+      } catch (e) {
+        pics = [{ nama: s.pic || "", hp: s.nomor_hp || "" }];
+      }
+    } else if (s.pic || s.nomor_hp) {
+      pics = [{ nama: s.pic || "", hp: s.nomor_hp || "" }];
+    }
+    return {
+      ...s,
+      pics: pics
+    };
+  });
 }
 
 function tambahSupplier(data) {
@@ -270,11 +311,20 @@ function tambahSupplier(data) {
   const num = parseInt(lastId.replace("SUP-", "")) + 1;
   const newId = "SUP-" + String(num).padStart(3, "0");
   
+  const pics = Array.isArray(data.pics) ? data.pics.filter(p => p.nama || p.hp) : [];
+  let picVal = data.pic || "";
+  let hpVal = data.nomor_hp || "";
+
+  if (pics.length > 0) {
+    picVal = JSON.stringify(pics);
+    hpVal = pics.map(p => p.hp).filter(Boolean).join(", ");
+  }
+
   const rowData = {
     id_supplier: newId,
     nama_supplier: data.nama_supplier,
-    pic: data.pic || "",
-    nomor_hp: data.nomor_hp || "",
+    pic: picVal,
+    nomor_hp: hpVal,
     email: data.email || "",
     alamat: data.alamat || "",
     status_supplier: data.status_supplier || "Aktif"
@@ -290,10 +340,19 @@ function updateSupplier(idSupplier, data) {
   
   if (!idSupplier) throw new Error("ID Supplier tidak valid.");
   
+  const pics = Array.isArray(data.pics) ? data.pics.filter(p => p.nama || p.hp) : [];
+  let picVal = data.pic || "";
+  let hpVal = data.nomor_hp || "";
+
+  if (pics.length > 0) {
+    picVal = JSON.stringify(pics);
+    hpVal = pics.map(p => p.hp).filter(Boolean).join(", ");
+  }
+
   const updatedFields = {
     nama_supplier: data.nama_supplier,
-    pic: data.pic,
-    nomor_hp: data.nomor_hp,
+    pic: picVal,
+    nomor_hp: hpVal,
     email: data.email,
     alamat: data.alamat,
     status_supplier: data.status_supplier
@@ -420,25 +479,47 @@ function getPengaturanDiskon() {
   try {
     const data = SheetService.readSheet("Pengaturan");
     let result = {
+      DISKON_MEMBER: 5,
       DISKON_LANGGANAN: 10,
+      DISKON_BENGKEL: 15,
       DISKON_TEMAN: 20,
+      DISKON_GROSIR: 25,
       MINIMUM_STOK: 5
     };
     data.forEach(row => {
+      if(row.kunci === "DISKON_MEMBER") result.DISKON_MEMBER = Number(row.nilai) || 0;
       if(row.kunci === "DISKON_LANGGANAN") result.DISKON_LANGGANAN = Number(row.nilai) || 0;
+      if(row.kunci === "DISKON_BENGKEL") result.DISKON_BENGKEL = Number(row.nilai) || 0;
       if(row.kunci === "DISKON_TEMAN") result.DISKON_TEMAN = Number(row.nilai) || 0;
+      if(row.kunci === "DISKON_GROSIR") result.DISKON_GROSIR = Number(row.nilai) || 0;
       if(row.kunci === "MINIMUM_STOK") result.MINIMUM_STOK = Number(row.nilai) || 0;
     });
     return result;
   } catch(e) {
-    // Fallback jika sheet belum di-setup
-    return { DISKON_LANGGANAN: 10, DISKON_TEMAN: 20, MINIMUM_STOK: 5 };
+    return { DISKON_MEMBER: 5, DISKON_LANGGANAN: 10, DISKON_BENGKEL: 15, DISKON_TEMAN: 20, DISKON_GROSIR: 25, MINIMUM_STOK: 5 };
   }
 }
 
-function updatePengaturanDiskon(diskonLangganan, diskonTeman, minimumStok) {
+function updatePengaturanDiskon(arg1, arg2, arg3, arg4, arg5, arg6) {
   requireRole(['Admin']);
   
+  let dMem = 5, dLan = 10, dBeng = 15, dTem = 20, dGro = 25, minStok = 5;
+  if (typeof arg1 === 'object' && arg1 !== null) {
+    dMem = Number(arg1.DISKON_MEMBER) || 0;
+    dLan = Number(arg1.DISKON_LANGGANAN) || 0;
+    dBeng = Number(arg1.DISKON_BENGKEL) || 0;
+    dTem = Number(arg1.DISKON_TEMAN) || 0;
+    dGro = Number(arg1.DISKON_GROSIR) || 0;
+    if (arg1.MINIMUM_STOK !== undefined && arg1.MINIMUM_STOK !== null) minStok = Number(arg1.MINIMUM_STOK);
+  } else {
+    dMem = Number(arg1) || 0;
+    dLan = Number(arg2) || 0;
+    dBeng = Number(arg3) || 0;
+    dTem = Number(arg4) || 0;
+    dGro = Number(arg5) || 0;
+    if (arg6 !== undefined && arg6 !== null) minStok = Number(arg6);
+  }
+
   const ssId = PropertiesService.getScriptProperties().getProperty('SHEET_ID');
   const ss = SpreadsheetApp.openById(ssId);
   let sheet = ss.getSheetByName("Pengaturan");
@@ -448,31 +529,31 @@ function updatePengaturanDiskon(diskonLangganan, diskonTeman, minimumStok) {
   }
   
   const data = sheet.getDataRange().getValues();
-  let foundLangganan = false;
-  let foundTeman = false;
-  let foundMinimumStok = false;
-  
+  const keysToUpdate = {
+    "DISKON_MEMBER": dMem,
+    "DISKON_LANGGANAN": dLan,
+    "DISKON_BENGKEL": dBeng,
+    "DISKON_TEMAN": dTem,
+    "DISKON_GROSIR": dGro,
+    "MINIMUM_STOK": minStok
+  };
+
+  const foundKeys = {};
+
   for(let i = 1; i < data.length; i++) {
-    if(data[i][0] === "DISKON_LANGGANAN") {
-      sheet.getRange(i+1, 2).setValue(diskonLangganan);
-      foundLangganan = true;
-    }
-    if(data[i][0] === "DISKON_TEMAN") {
-      sheet.getRange(i+1, 2).setValue(diskonTeman);
-      foundTeman = true;
-    }
-    if(data[i][0] === "MINIMUM_STOK") {
-      if(minimumStok !== undefined && minimumStok !== null) {
-        sheet.getRange(i+1, 2).setValue(minimumStok);
-        foundMinimumStok = true;
-      }
+    const k = data[i][0];
+    if (keysToUpdate.hasOwnProperty(k)) {
+      sheet.getRange(i+1, 2).setValue(keysToUpdate[k]);
+      foundKeys[k] = true;
     }
   }
   
-  if(!foundLangganan) sheet.appendRow(["DISKON_LANGGANAN", diskonLangganan]);
-  if(!foundTeman) sheet.appendRow(["DISKON_TEMAN", diskonTeman]);
-  if(!foundMinimumStok && minimumStok !== undefined && minimumStok !== null) sheet.appendRow(["MINIMUM_STOK", minimumStok]);
-  
-  logActivity("UPDATE", "Pengaturan Global", `Diskon: ${diskonLangganan}%/${diskonTeman}%, Min Stok: ${minimumStok}`);
+  Object.keys(keysToUpdate).forEach(k => {
+    if (!foundKeys[k]) {
+      sheet.appendRow([k, keysToUpdate[k]]);
+    }
+  });
+
+  logActivity("UPDATE", "Pengaturan Global", `Diskon: Mem:${dMem}%, Lgn:${dLan}%, Bkg:${dBeng}%, Tmn:${dTem}%, Gsr:${dGro}%, MinStok: ${minStok}`);
   return true;
 }

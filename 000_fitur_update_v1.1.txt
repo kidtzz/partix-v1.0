@@ -1,0 +1,29 @@
+BAB 1 — Modul Stock
+### 1.1 Master Barang
+- Field “Kategori” bisa dihapus. Ganti/Tambahkan dengan Field “Supplier” (done)
+
+### 1.2 Master Supplier
+- Field “Alamat” bisa dihapus. Ganti/Tambahkan dengan Field “Diskon”. Satu supplier bisa memiliki beberapa angka diskon tergantung jenis barang (mis. Supplier A menawarkan diskon 25% untuk ban luar, 20% untuk sparepart, 12% untuk oli)
+- Satu supplier memiliki beberapa PIC dan nomor HP (Done)
+
+### 1.4 Master Harga
+- Tingkat harga jual bisa 5-6 kategori customer (belum fix, menyusul) (Done)
+
+-----updae_29/07/2026-------
+
+BAB 2 — Modul Penjualan
+### 2.1 Transaksi Penjualan
+- Tambahkan fitur/field “Potongan Penjualan” untuk mencatat selisih kekurangan jumlah pembayaran dengan total transaksi yang sebenarnya (_customer nawar_). Role **Kasir** input manual jumlah Potongan Penjualan. Potongan Penjualan dibuatkan dashboard untuk mengetahui jumlah kumulatif.
+### 2.2 Harga Penjualan
+- Tingkat harga jual bisa 5-6 kategori customer (belum fix, menyusul)
+
+BAB 3 — Modul Return
+### 3.3 Return Stock
+- Barang direturn bisa jadi karena barang gagal/cacat produksi -> toko akan retur ke supplier -> barang return tersebut tidak kembali menambah stock persediaan. Mungkin bisa dibuatkan List Barang Return ke Supplier.
+
+BAB 4 — Modul Dashboard & Laporan
+### 4.3 Laporan Penjualan
+- Tambahkan dashboard “Potongan Penjualan” (harian, mingguan, bulanan, tahunan)
+- Tambahkan dashboard Total Pendapatan sesuai masing-masing metode pembayaran. (Pendapatan uang yang diterima secara cash / transfer / QRIS) -> untuk menyesuaikan jumlah uang fisik yang diterima dengan jumlah uang yang dicatat sistem)
+### 4.4 Laporan Return
+- Tambahkan List Barang Return ke Supplier (**Fitur dan Informasi yang disimpan**: Supplier, Barang, Harga Beli, Tanggal Barang Masuk, Nomor Invoice Supplier)

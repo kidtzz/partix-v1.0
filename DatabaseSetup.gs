@@ -10,7 +10,7 @@ const EXISTING_SPREADSHEET_ID = "";
 // ==============================================================================
 
 const DB_SCHEMA = {
-  "Barang": ["id_barang", "barcode", "nama_barang", "kategori", "merk", "satuan", "isi_per_box", "lokasi_rak", "minimum_stock", "stok_saat_ini", "status_barang"],
+  "Barang": ["id_barang", "barcode1", "barcode2", "nama_barang", "kategori", "merk", "satuan", "isi_per_box", "lokasi_rak", "minimum_stock", "stok_saat_ini", "status_barang"],
   "Supplier": ["id_supplier", "nama_supplier", "pic", "nomor_hp", "email", "alamat", "status_supplier"],
   "Barang_Supplier": ["id_barang_supplier", "id_barang", "id_supplier", "harga_beli", "kode_barang_supplier", "is_utama", "status"],
   "Harga": ["id_harga", "id_barang", "harga_regular", "harga_langganan", "harga_teman", "tanggal_berlaku", "status_harga", "keterangan_perubahan"],
@@ -115,9 +115,9 @@ function installDatabase(existingSheetId) {
 
   // 4. Barang
   const barangSheet = ss.getSheetByName("Barang");
-  barangSheet.appendRow(["BRG-00001", "8998989, 123456", "Oli Pertamina Enduro 4T", "Oli", "Pertamina", "BOTOL", 24, "Rak A1", 10, 50, "Aktif"]);
-  barangSheet.appendRow(["BRG-00002", "777777, 888888", "Busi NGK C7HSA", "Sparepart", "NGK", "PCS", 10, "Rak B2", 5, 20, "Aktif"]);
-  barangSheet.appendRow(["BRG-00003", "55555, 66666", "Kampas Rem Depan Supra", "Sparepart", "Honda", "SET", 50, "Rak C3", 5, 15, "Aktif"]);
+  barangSheet.appendRow(["BRG-00001", "8998989", "123456", "Oli Pertamina Enduro 4T", "Oli", "Pertamina", "BOTOL", 24, "Rak A1", 10, 50, "Aktif"]);
+  barangSheet.appendRow(["BRG-00002", "777777", "888888", "Busi NGK C7HSA", "Sparepart", "NGK", "PCS", 10, "Rak B2", 5, 20, "Aktif"]);
+  barangSheet.appendRow(["BRG-00003", "55555", "66666", "Kampas Rem Depan Supra", "Sparepart", "Honda", "SET", 50, "Rak C3", 5, 15, "Aktif"]);
 
   // 5. Barang_Supplier
   const barangSupplierSheet = ss.getSheetByName("Barang_Supplier");

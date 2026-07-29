@@ -7,6 +7,7 @@ function getBarangUntukPOS() {
   requireRole(['Admin', 'Kasir']);
   const barangList = SheetService.readSheet("Barang");
   const hargaList = SheetService.readSheet("Harga");
+  const diskon = getPengaturanDiskon();
   
   // Ambil hanya harga yang aktif
   const hargaAktif = hargaList.filter(h => h.status_harga === "Aktif");
@@ -17,13 +18,20 @@ function getBarangUntukPOS() {
     const supplierPrices = bsList.filter(bs => bs.id_barang === b.id_barang).map(bs => Number(bs.harga_beli));
     const maxHargaBeli = supplierPrices.length > 0 ? Math.max(...supplierPrices) : 0;
 
-    // Harga sekarang satu baris per barang
     const h = hargaAktif.find(h => h.id_barang === b.id_barang);
+    const regPrice = h ? Number(h.harga_regular) : 0;
+
     let mappedHarga = {
-      "Regular": h ? Number(h.harga_regular) : 0,
-      "Langganan": h ? Number(h.harga_langganan) : 0,
-      "Teman": h ? Number(h.harga_teman) : 0
+      "Regular": regPrice,
+      "Member": Math.floor((regPrice * (1 - (diskon.DISKON_MEMBER / 100))) / 100) * 100,
+      "Langganan": Math.floor((regPrice * (1 - (diskon.DISKON_LANGGANAN / 100))) / 100) * 100,
+      "Bengkel": Math.floor((regPrice * (1 - (diskon.DISKON_BENGKEL / 100))) / 100) * 100,
+      "Teman": Math.floor((regPrice * (1 - (diskon.DISKON_TEMAN / 100))) / 100) * 100,
+      "Grosir": Math.floor((regPrice * (1 - (diskon.DISKON_GROSIR / 100))) / 100) * 100
     };
+    mappedHarga["Bengkel / Reseller"] = mappedHarga["Bengkel"];
+    mappedHarga["Teman / Kenalan"] = mappedHarga["Teman"];
+    mappedHarga["Grosir / VIP"] = mappedHarga["Grosir"];
     
     return {
       id_barang: b.id_barang,
@@ -46,23 +54,31 @@ function scanBarcodePenjualan(barcode) {
   
   const barang = barangList.find(b => {
     if (b.nama_barang && b.nama_barang.toLowerCase().includes(query)) return true;
-    if (b.barcode) {
-      const barcodes = b.barcode.split(',').map(str => str.trim().toLowerCase());
-      if (barcodes.includes(query)) return true;
-    }
-    return false;
+    if (b.id_barang && b.id_barang.toLowerCase() === query) return true;
+    const bc1 = String(b.barcode1 || '').trim().toLowerCase();
+    const bc2 = String(b.barcode2 || '').trim().toLowerCase();
+    const legacy = String(b.barcode || '').split(',').map(s => s.trim().toLowerCase());
+    return bc1 === query || bc2 === query || legacy.includes(query);
   });
   
   if (!barang) throw new Error("Barang tidak ditemukan!");
   if (barang.status_barang !== "Aktif") throw new Error("Barang berstatus Nonaktif.");
   
   const h = SheetService.readSheet("Harga").find(h => h.id_barang === barang.id_barang && h.status_harga === "Aktif");
+  const diskon = getPengaturanDiskon();
+  const regPrice = h ? Number(h.harga_regular) : 0;
                  
   let mappedHarga = {
-    "Regular": h ? Number(h.harga_regular) : 0,
-    "Langganan": h ? Number(h.harga_langganan) : 0,
-    "Teman": h ? Number(h.harga_teman) : 0
+    "Regular": regPrice,
+    "Member": Math.floor((regPrice * (1 - (diskon.DISKON_MEMBER / 100))) / 100) * 100,
+    "Langganan": Math.floor((regPrice * (1 - (diskon.DISKON_LANGGANAN / 100))) / 100) * 100,
+    "Bengkel": Math.floor((regPrice * (1 - (diskon.DISKON_BENGKEL / 100))) / 100) * 100,
+    "Teman": Math.floor((regPrice * (1 - (diskon.DISKON_TEMAN / 100))) / 100) * 100,
+    "Grosir": Math.floor((regPrice * (1 - (diskon.DISKON_GROSIR / 100))) / 100) * 100
   };
+  mappedHarga["Bengkel / Reseller"] = mappedHarga["Bengkel"];
+  mappedHarga["Teman / Kenalan"] = mappedHarga["Teman"];
+  mappedHarga["Grosir / VIP"] = mappedHarga["Grosir"];
   
   return {
     id_barang: barang.id_barang,

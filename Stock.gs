@@ -12,12 +12,14 @@ function scanBarcodeStock(barcode) {
   requireRole(['Admin', 'Restocker', 'Kasir']);
   
   if (!barcode) throw new Error("Barcode tidak boleh kosong.");
+  const query = barcode.trim().toLowerCase();
   
   const barangList = SheetService.readSheet("Barang");
   const barang = barangList.find(b => {
-    if (!b.barcode) return false;
-    const barcodes = b.barcode.split(',').map(str => str.trim());
-    return barcodes.includes(barcode.trim());
+    const bc1 = String(b.barcode1 || '').trim().toLowerCase();
+    const bc2 = String(b.barcode2 || '').trim().toLowerCase();
+    const legacy = String(b.barcode || '').split(',').map(s => s.trim().toLowerCase());
+    return bc1 === query || bc2 === query || legacy.includes(query);
   });
   
   if (!barang) {

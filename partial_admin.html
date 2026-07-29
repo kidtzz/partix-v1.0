@@ -15,14 +15,29 @@
         <div class="glass-card" style="padding: 24px; display: flex; flex-direction: column;">
             <h3
                 style="margin-top:0; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 20px;">
-                <i class='bx bxs-discount'></i> Pengaturan Diskon
+                <i class='bx bxs-discount'></i> Pengaturan Diskon (6 Kategori Customer)
             </h3>
+
+            <div class="input-group">
+                <label>Diskon Member (%)</label>
+                <div class="flex items-center gap-4">
+                    <input type="number" id="settingDiskonMember" class="input-control" placeholder="5" min="0"
+                        max="100" style="width: 90px;" oninput="updateDiskonVisual('Mem', this.value)">
+                    <div style="flex: 1; height: 10px; background: #e2e8f0; border-radius: 6px; overflow: hidden;">
+                        <div id="barDiskonMem"
+                            style="height: 100%; width: 5%; background: #3b82f6; transition: width 0.3s ease;">
+                        </div>
+                    </div>
+                    <span id="textDiskonMem" style="font-weight: 600; min-width: 40px;">5%</span>
+                </div>
+            </div>
+
             <div class="input-group">
                 <label>Diskon Harga Langganan (%)</label>
                 <div class="flex items-center gap-4">
                     <input type="number" id="settingDiskonLangganan" class="input-control" placeholder="10" min="0"
-                        max="100" style="width: 100px;" oninput="updateDiskonVisual('Lan', this.value)">
-                    <div style="flex: 1; height: 12px; background: #e2e8f0; border-radius: 6px; overflow: hidden;">
+                        max="100" style="width: 90px;" oninput="updateDiskonVisual('Lan', this.value)">
+                    <div style="flex: 1; height: 10px; background: #e2e8f0; border-radius: 6px; overflow: hidden;">
                         <div id="barDiskonLan"
                             style="height: 100%; width: 10%; background: var(--primary-color); transition: width 0.3s ease;">
                         </div>
@@ -30,12 +45,27 @@
                     <span id="textDiskonLan" style="font-weight: 600; min-width: 40px;">10%</span>
                 </div>
             </div>
+
+            <div class="input-group">
+                <label>Diskon Bengkel / Reseller (%)</label>
+                <div class="flex items-center gap-4">
+                    <input type="number" id="settingDiskonBengkel" class="input-control" placeholder="15" min="0"
+                        max="100" style="width: 90px;" oninput="updateDiskonVisual('Beng', this.value)">
+                    <div style="flex: 1; height: 10px; background: #e2e8f0; border-radius: 6px; overflow: hidden;">
+                        <div id="barDiskonBeng"
+                            style="height: 100%; width: 15%; background: #8b5cf6; transition: width 0.3s ease;">
+                        </div>
+                    </div>
+                    <span id="textDiskonBeng" style="font-weight: 600; min-width: 40px;">15%</span>
+                </div>
+            </div>
+
             <div class="input-group">
                 <label>Diskon Harga Teman/Kenalan (%)</label>
                 <div class="flex items-center gap-4">
                     <input type="number" id="settingDiskonTeman" class="input-control" placeholder="20" min="0"
-                        max="100" style="width: 100px;" oninput="updateDiskonVisual('Tem', this.value)">
-                    <div style="flex: 1; height: 12px; background: #e2e8f0; border-radius: 6px; overflow: hidden;">
+                        max="100" style="width: 90px;" oninput="updateDiskonVisual('Tem', this.value)">
+                    <div style="flex: 1; height: 10px; background: #e2e8f0; border-radius: 6px; overflow: hidden;">
                         <div id="barDiskonTem"
                             style="height: 100%; width: 20%; background: var(--secondary-color); transition: width 0.3s ease;">
                         </div>
@@ -43,6 +73,21 @@
                     <span id="textDiskonTem" style="font-weight: 600; min-width: 40px;">20%</span>
                 </div>
             </div>
+
+            <div class="input-group">
+                <label>Diskon Grosir / VIP (%)</label>
+                <div class="flex items-center gap-4">
+                    <input type="number" id="settingDiskonGrosir" class="input-control" placeholder="25" min="0"
+                        max="100" style="width: 90px;" oninput="updateDiskonVisual('Gro', this.value)">
+                    <div style="flex: 1; height: 10px; background: #e2e8f0; border-radius: 6px; overflow: hidden;">
+                        <div id="barDiskonGro"
+                            style="height: 100%; width: 25%; background: #ec4899; transition: width 0.3s ease;">
+                        </div>
+                    </div>
+                    <span id="textDiskonGro" style="font-weight: 600; min-width: 40px;">25%</span>
+                </div>
+            </div>
+
             <div style="text-align: right; margin-top: auto; padding-top: 16px;">
                 <button class="btn btn-primary" onclick="simpanPengaturanDiskon()" id="btnSimpanDiskon1">
                     <i class='bx bx-save'></i> Simpan Diskon
@@ -70,22 +115,26 @@
         </div>
     </div>
 
-    <div class="glass-card" style="padding: 24px; flex: 1; overflow: hidden; display: flex; flex-direction: column;">
-        <div class="table-container" style="flex: 1; margin-bottom: 24px;">
+    <!-- Main Master Price Table (Expanded Wide Kebawah, Tampilkan Min 10 Data) -->
+    <div class="glass-card" style="padding: 20px; flex: 1; display: flex; flex-direction: column; min-height: 600px; margin-bottom: 24px;">
+        <div class="table-container" style="flex: 1; overflow: auto; min-height: 550px; border-radius: var(--radius-md);">
             <table class="table table-hover">
                 <thead>
                     <tr>
-                        <th>Barang</th>
-                        <th>Harga Modal</th>
-                        <th>H. Regular</th>
-                        <th>H. Langganan</th>
-                        <th>H. Teman</th>
-                        <th>Aksi</th>
+                        <th style="min-width: 200px;">Barang & ID</th>
+                        <th style="min-width: 110px;">Modal (Max)</th>
+                        <th style="min-width: 115px;">H. Regular</th>
+                        <th style="min-width: 105px;">H. Member</th>
+                        <th style="min-width: 115px;">H. Langganan</th>
+                        <th style="min-width: 105px;">H. Bengkel</th>
+                        <th style="min-width: 105px;">H. Teman</th>
+                        <th style="min-width: 105px;">H. Grosir</th>
+                        <th style="min-width: 80px; text-align: center;">Aksi</th>
                     </tr>
                 </thead>
                 <tbody id="adminHargaTableBody">
                     <tr>
-                        <td colspan="6" style="text-align:center;">Memuat data...</td>
+                        <td colspan="9" style="text-align:center;">Memuat data...</td>
                     </tr>
                 </tbody>
             </table>
@@ -294,8 +343,9 @@
                 <div style="font-weight: 600;" id="modalEditHargaNama">Nama Barang</div>
                 <div style="font-size: 13px; color: var(--text-muted);" id="modalEditHargaId">BRG-0000</div>
             </div>
-            
-            <div class="alert alert-info" style="margin-bottom: 20px; padding: 12px; background: #e0f2fe; border-radius: 8px; border-left: 4px solid #0284c7;">
+
+            <div class="alert alert-info"
+                style="margin-bottom: 20px; padding: 12px; background: #e0f2fe; border-radius: 8px; border-left: 4px solid #0284c7;">
                 <strong>Harga Modal (Max):</strong> <span id="infoHargaModalTertinggi">Rp 0</span>
             </div>
 
@@ -304,13 +354,27 @@
                 <input type="number" class="input-control" id="editHargaReg" value="0" oninput="previewEditHarga()"
                     style="font-size: 16px; font-weight: 600; padding: 10px;">
             </div>
-            <div class="input-group">
-                <label>Harga Langganan (Diskon <span id="labelDiskonLanEdit">10</span>%)</label>
-                <input type="text" class="input-control" id="editHargaLan" disabled style="background: #f3f4f6;">
+            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="input-group">
+                    <label>Harga Member (<span id="labelDiskonMemEdit">5</span>%)</label>
+                    <input type="text" class="input-control" id="editHargaMem" disabled style="background: #f3f4f6;">
+                </div>
+                <div class="input-group">
+                    <label>Harga Langganan (<span id="labelDiskonLanEdit">10</span>%)</label>
+                    <input type="text" class="input-control" id="editHargaLan" disabled style="background: #f3f4f6;">
+                </div>
+                <div class="input-group">
+                    <label>Harga Bengkel (<span id="labelDiskonBengEdit">15</span>%)</label>
+                    <input type="text" class="input-control" id="editHargaBeng" disabled style="background: #f3f4f6;">
+                </div>
+                <div class="input-group">
+                    <label>Harga Teman (<span id="labelDiskonTemEdit">20</span>%)</label>
+                    <input type="text" class="input-control" id="editHargaTem" disabled style="background: #f3f4f6;">
+                </div>
             </div>
             <div class="input-group">
-                <label>Harga Teman (Diskon <span id="labelDiskonTemEdit">20</span>%)</label>
-                <input type="text" class="input-control" id="editHargaTem" disabled style="background: #f3f4f6;">
+                <label>Harga Grosir / VIP (<span id="labelDiskonGroEdit">25</span>%)</label>
+                <input type="text" class="input-control" id="editHargaGro" disabled style="background: #f3f4f6;">
             </div>
         </div>
         <div class="modal-footer">
@@ -406,7 +470,7 @@
 
 <!-- Modal Tambah/Edit Supplier -->
 <div class="modal-overlay" id="modalAdminSupplier">
-    <div class="modal-content">
+    <div class="modal-content" style="max-width: 550px;">
         <div class="modal-header">
             <h3 id="modalAdminSupplierTitle">Tambah Supplier Baru</h3>
             <button class="modal-close" onclick="tutupModalSupplier()"><i class='bx bx-x'></i></button>
@@ -415,21 +479,23 @@
             <input type="hidden" id="formSupplierId">
             <div class="input-group">
                 <label>Nama Supplier *</label>
-                <input type="text" class="input-control" id="formSupplierNama" required>
+                <input type="text" class="input-control" id="formSupplierNama" placeholder="Contoh: PT Astra Otoparts"
+                    required>
             </div>
-            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 16px;">
-                <div class="input-group">
-                    <label>PIC</label>
-                    <input type="text" class="input-control" id="formSupplierPIC">
+            <div class="input-group" style="margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <label style="margin-bottom: 0;">Daftar PIC & Kontak (HP/WA)</label>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="tambahBarisPicForm()">
+                        <i class='bx bx-plus'></i> Tambah PIC
+                    </button>
                 </div>
-                <div class="input-group">
-                    <label>No. HP</label>
-                    <input type="text" class="input-control" id="formSupplierHp">
+                <div id="supplierPicContainer" style="display: flex; flex-direction: column; gap: 10px;">
+                    <!-- Dynamic PIC Rows -->
                 </div>
             </div>
             <div class="input-group">
                 <label>Email</label>
-                <input type="email" class="input-control" id="formSupplierEmail">
+                <input type="email" class="input-control" id="formSupplierEmail" placeholder="supplier@email.com">
             </div>
             <div class="input-group">
                 <label>Alamat Supplier</label>
@@ -506,28 +572,48 @@
 <script>
     let adminBarangData = [];
     let isAdminHargaLoaded = false;
-    let globalDiskon = { DISKON_LANGGANAN: 10, DISKON_TEMAN: 20 };
+    let globalDiskon = {
+        DISKON_MEMBER: 5,
+        DISKON_LANGGANAN: 10,
+        DISKON_BENGKEL: 15,
+        DISKON_TEMAN: 20,
+        DISKON_GROSIR: 25,
+        MINIMUM_STOK: 5
+    };
 
     function loadAdminPengaturan() {
         BackendAPI.call('getPengaturanDiskon').then(res => {
             globalDiskon = res;
-            document.getElementById('settingDiskonLangganan').value = res.DISKON_LANGGANAN || 0;
-            document.getElementById('settingDiskonTeman').value = res.DISKON_TEMAN || 0;
-            document.getElementById('settingMinimumStok').value = res.MINIMUM_STOK || 5;
+            if (document.getElementById('settingDiskonMember')) document.getElementById('settingDiskonMember').value = res.DISKON_MEMBER || 0;
+            if (document.getElementById('settingDiskonLangganan')) document.getElementById('settingDiskonLangganan').value = res.DISKON_LANGGANAN || 0;
+            if (document.getElementById('settingDiskonBengkel')) document.getElementById('settingDiskonBengkel').value = res.DISKON_BENGKEL || 0;
+            if (document.getElementById('settingDiskonTeman')) document.getElementById('settingDiskonTeman').value = res.DISKON_TEMAN || 0;
+            if (document.getElementById('settingDiskonGrosir')) document.getElementById('settingDiskonGrosir').value = res.DISKON_GROSIR || 0;
+            if (document.getElementById('settingMinimumStok')) document.getElementById('settingMinimumStok').value = res.MINIMUM_STOK || 5;
 
             // Re-render
             renderAdminHarga(adminBarangData);
-            // Update labels if modal edit harga is open
-            const lblLan = document.getElementById('labelDiskonLanEdit');
-            if (lblLan) lblLan.textContent = res.DISKON_LANGGANAN;
-            const lblTem = document.getElementById('labelDiskonTemEdit');
-            if (lblTem) lblTem.textContent = res.DISKON_TEMAN;
 
+            // Update modal labels
+            updateLabelDiskonEdit('Mem', res.DISKON_MEMBER);
+            updateLabelDiskonEdit('Lan', res.DISKON_LANGGANAN);
+            updateLabelDiskonEdit('Beng', res.DISKON_BENGKEL);
+            updateLabelDiskonEdit('Tem', res.DISKON_TEMAN);
+            updateLabelDiskonEdit('Gro', res.DISKON_GROSIR);
+
+            updateDiskonVisual('Mem', res.DISKON_MEMBER);
             updateDiskonVisual('Lan', res.DISKON_LANGGANAN);
+            updateDiskonVisual('Beng', res.DISKON_BENGKEL);
             updateDiskonVisual('Tem', res.DISKON_TEMAN);
+            updateDiskonVisual('Gro', res.DISKON_GROSIR);
         }).catch(err => {
             showToast(err.message, 'error');
         });
+    }
+
+    function updateLabelDiskonEdit(type, val) {
+        const lbl = document.getElementById('labelDiskon' + type + 'Edit');
+        if (lbl) lbl.textContent = val || 0;
     }
 
     function updateDiskonVisual(type, value) {
@@ -540,22 +626,34 @@
     }
 
     function simpanPengaturanDiskon() {
+        const dMem = Number(document.getElementById('settingDiskonMember').value) || 0;
         const dLan = Number(document.getElementById('settingDiskonLangganan').value) || 0;
+        const dBeng = Number(document.getElementById('settingDiskonBengkel').value) || 0;
         const dTem = Number(document.getElementById('settingDiskonTeman').value) || 0;
+        const dGro = Number(document.getElementById('settingDiskonGrosir').value) || 0;
         const mStok = globalDiskon.MINIMUM_STOK || 5;
 
         const btn = document.getElementById('btnSimpanDiskon1');
         if (btn) { btn.disabled = true; btn.innerHTML = "Menyimpan..."; }
 
-        BackendAPI.call('updatePengaturanDiskon', [dLan, dTem, mStok]).then(() => {
-            showToast("Pengaturan Diskon berhasil disimpan", "success");
-            globalDiskon.DISKON_LANGGANAN = dLan;
-            globalDiskon.DISKON_TEMAN = dTem;
+        const payload = {
+            DISKON_MEMBER: dMem,
+            DISKON_LANGGANAN: dLan,
+            DISKON_BENGKEL: dBeng,
+            DISKON_TEMAN: dTem,
+            DISKON_GROSIR: dGro,
+            MINIMUM_STOK: mStok
+        };
 
-            const lblLan = document.getElementById('labelDiskonLanEdit');
-            if (lblLan) lblLan.textContent = dLan;
-            const lblTem = document.getElementById('labelDiskonTemEdit');
-            if (lblTem) lblTem.textContent = dTem;
+        BackendAPI.call('updatePengaturanDiskon', [payload]).then(() => {
+            showToast("Pengaturan Diskon berhasil disimpan", "success");
+            Object.assign(globalDiskon, payload);
+
+            updateLabelDiskonEdit('Mem', dMem);
+            updateLabelDiskonEdit('Lan', dLan);
+            updateLabelDiskonEdit('Beng', dBeng);
+            updateLabelDiskonEdit('Tem', dTem);
+            updateLabelDiskonEdit('Gro', dGro);
 
             if (adminBarangData && adminBarangData.length > 0) {
                 renderAdminHarga(adminBarangData);
@@ -568,14 +666,16 @@
     }
 
     function simpanStokMinimum() {
-        const dLan = globalDiskon.DISKON_LANGGANAN || 0;
-        const dTem = globalDiskon.DISKON_TEMAN || 0;
         const mStok = Number(document.getElementById('settingMinimumStok').value) || 0;
+        const payload = {
+            ...globalDiskon,
+            MINIMUM_STOK: mStok
+        };
 
         const btn = document.getElementById('btnSimpanDiskon2');
         if (btn) { btn.disabled = true; btn.innerHTML = "Menyimpan..."; }
 
-        BackendAPI.call('updatePengaturanDiskon', [dLan, dTem, mStok]).then(() => {
+        BackendAPI.call('updatePengaturanDiskon', [payload]).then(() => {
             showToast("Pengaturan Stok Minimum berhasil disimpan", "success");
             globalDiskon.MINIMUM_STOK = mStok;
         }).catch(err => {
@@ -596,40 +696,51 @@
     }
 
     function loadAdminHarga() {
-        document.getElementById('adminHargaTableBody').innerHTML = `<tr><td colspan="6" style="text-align:center;">Memuat data...</td></tr>`;
+        document.getElementById('adminHargaTableBody').innerHTML = `<tr><td colspan="9" style="text-align:center;">Memuat data...</td></tr>`;
         BackendAPI.call('getBarangUntukPOS').then(data => {
             adminBarangData = data;
             renderAdminHarga(data);
             isAdminHargaLoaded = true;
         }).catch(err => {
-            document.getElementById('adminHargaTableBody').innerHTML = `<tr><td colspan="6" style="color:red; text-align:center;">Error: ${err.message}</td></tr>`;
+            document.getElementById('adminHargaTableBody').innerHTML = `<tr><td colspan="9" style="color:red; text-align:center;">Error: ${err.message}</td></tr>`;
         });
     }
 
     function renderAdminHarga(data) {
         const tbody = document.getElementById('adminHargaTableBody');
         if (data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">Tidak ada barang</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding: 40px; color: var(--text-muted);">Tidak ada data barang.</td></tr>`;
             return;
         }
 
         tbody.innerHTML = data.map(b => {
             const hrgReg = b.harga['Regular'] || 0;
-            const hrgLan = Math.floor((hrgReg * (1 - (globalDiskon.DISKON_LANGGANAN / 100))) / 100) * 100;
-            const hrgTem = Math.floor((hrgReg * (1 - (globalDiskon.DISKON_TEMAN / 100))) / 100) * 100;
+            const hrgMem = b.harga['Member'] || Math.floor((hrgReg * (1 - ((globalDiskon.DISKON_MEMBER || 5) / 100))) / 100) * 100;
+            const hrgLan = b.harga['Langganan'] || Math.floor((hrgReg * (1 - ((globalDiskon.DISKON_LANGGANAN || 10) / 100))) / 100) * 100;
+            const hrgBeng = b.harga['Bengkel'] || Math.floor((hrgReg * (1 - ((globalDiskon.DISKON_BENGKEL || 15) / 100))) / 100) * 100;
+            const hrgTem = b.harga['Teman'] || Math.floor((hrgReg * (1 - ((globalDiskon.DISKON_TEMAN || 20) / 100))) / 100) * 100;
+            const hrgGro = b.harga['Grosir'] || Math.floor((hrgReg * (1 - ((globalDiskon.DISKON_GROSIR || 25) / 100))) / 100) * 100;
+
+            const barcodeStr = b.barcode ? b.barcode : [b.barcode1, b.barcode2].filter(Boolean).join(', ');
 
             return `
             <tr>
-                <td>
-                    <div style="font-weight: 600;">${b.nama_barang}</div>
-                    <div style="font-size: 12px; color: var(--text-muted);">${b.id_barang} | ${b.barcode}</div>
+                <td style="padding: 12px 14px;">
+                    <div style="font-weight: 600; color: var(--text-main); font-size: 14px; margin-bottom: 2px;">${b.nama_barang}</div>
+                    <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                        <span style="font-size: 11px; background: rgba(79, 70, 229, 0.08); color: var(--primary-color); padding: 1px 6px; border-radius: 4px; font-weight: 500;">${b.id_barang}</span>
+                        ${barcodeStr ? `<span style="font-size: 11px; color: var(--text-muted);"><i class='bx bx-barcode'></i> ${barcodeStr}</span>` : ''}
+                    </div>
                 </td>
-                <td>${formatRupiah(b.harga_modal || 0)}</td>
-                <td>${formatRupiah(hrgReg)}</td>
-                <td>${formatRupiah(hrgLan)}</td>
-                <td>${formatRupiah(hrgTem)}</td>
-                <td>
-                    <button class="btn btn-secondary btn-sm" onclick="editHarga('${b.id_barang}')">Edit</button>
+                <td style="padding: 12px 14px;"><span style="font-size: 13px; color: #64748b; font-weight: 500;">${formatRupiah(b.harga_modal || 0)}</span></td>
+                <td style="padding: 12px 14px;"><span style="font-weight: 700; color: var(--text-main); font-size: 14px;">${formatRupiah(hrgReg)}</span></td>
+                <td style="padding: 12px 14px;"><span class="price-pill" style="background: rgba(59, 130, 246, 0.08); color: #2563eb;">${formatRupiah(hrgMem)}</span></td>
+                <td style="padding: 12px 14px;"><span class="price-pill" style="background: rgba(79, 70, 229, 0.08); color: #4f46e5;">${formatRupiah(hrgLan)}</span></td>
+                <td style="padding: 12px 14px;"><span class="price-pill" style="background: rgba(139, 92, 246, 0.08); color: #7c3aed;">${formatRupiah(hrgBeng)}</span></td>
+                <td style="padding: 12px 14px;"><span class="price-pill" style="background: rgba(16, 185, 129, 0.08); color: #059669;">${formatRupiah(hrgTem)}</span></td>
+                <td style="padding: 12px 14px;"><span class="price-pill" style="background: rgba(236, 72, 153, 0.08); color: #db2777;">${formatRupiah(hrgGro)}</span></td>
+                <td style="padding: 12px 14px; text-align: center;">
+                    <button class="btn btn-secondary btn-sm" onclick="editHarga('${b.id_barang}')" style="padding: 5px 12px; font-size: 12px;"><i class='bx bx-edit-alt'></i> Edit</button>
                 </td>
             </tr>
             `;
@@ -644,11 +755,17 @@
 
     function previewEditHarga() {
         const reg = Number(document.getElementById('editHargaReg').value) || 0;
-        const calcLan = reg * (1 - (globalDiskon.DISKON_LANGGANAN / 100));
-        const calcTem = reg * (1 - (globalDiskon.DISKON_TEMAN / 100));
+        const calcMem = reg * (1 - ((globalDiskon.DISKON_MEMBER || 5) / 100));
+        const calcLan = reg * (1 - ((globalDiskon.DISKON_LANGGANAN || 10) / 100));
+        const calcBeng = reg * (1 - ((globalDiskon.DISKON_BENGKEL || 15) / 100));
+        const calcTem = reg * (1 - ((globalDiskon.DISKON_TEMAN || 20) / 100));
+        const calcGro = reg * (1 - ((globalDiskon.DISKON_GROSIR || 25) / 100));
 
-        document.getElementById('editHargaLan').value = "Rp " + (Math.floor(calcLan / 100) * 100).toLocaleString('id-ID');
-        document.getElementById('editHargaTem').value = "Rp " + (Math.floor(calcTem / 100) * 100).toLocaleString('id-ID');
+        if (document.getElementById('editHargaMem')) document.getElementById('editHargaMem').value = "Rp " + (Math.floor(calcMem / 100) * 100).toLocaleString('id-ID');
+        if (document.getElementById('editHargaLan')) document.getElementById('editHargaLan').value = "Rp " + (Math.floor(calcLan / 100) * 100).toLocaleString('id-ID');
+        if (document.getElementById('editHargaBeng')) document.getElementById('editHargaBeng').value = "Rp " + (Math.floor(calcBeng / 100) * 100).toLocaleString('id-ID');
+        if (document.getElementById('editHargaTem')) document.getElementById('editHargaTem').value = "Rp " + (Math.floor(calcTem / 100) * 100).toLocaleString('id-ID');
+        if (document.getElementById('editHargaGro')) document.getElementById('editHargaGro').value = "Rp " + (Math.floor(calcGro / 100) * 100).toLocaleString('id-ID');
     }
 
     function editHarga(idBarang) {
@@ -658,7 +775,7 @@
         currentIdBarangUntukHarga = idBarang;
 
         document.getElementById('modalEditHargaNama').textContent = b.nama_barang;
-        
+
         // Show info about Harga Modal Tertinggi
         document.getElementById('infoHargaModalTertinggi').textContent = formatRupiah(b.harga_modal || 0);
 
@@ -956,34 +1073,85 @@
             return;
         }
 
-        tbody.innerHTML = data.map(s => `
+        tbody.innerHTML = data.map(s => {
+            let picContent = '-';
+            let hpContent = '-';
+
+            if (s.pics && s.pics.length > 0) {
+                picContent = s.pics.map(p => `<div><i class='bx bx-user' style="color:var(--primary-color);"></i> ${p.nama || '-'}</div>`).join('');
+                hpContent = s.pics.map(p => `<div><i class='bx bx-phone' style="color:var(--text-muted);"></i> ${p.hp || '-'}</div>`).join('');
+            } else {
+                if (s.pic) picContent = s.pic;
+                if (s.nomor_hp) hpContent = s.nomor_hp;
+            }
+
+            return `
             <tr>
                 <td>${s.id_supplier}</td>
                 <td><div style="font-weight: 600;">${s.nama_supplier}</div></td>
-                <td>${s.pic}</td>
-                <td><small>${s.nomor_hp}</small></td>
-                <td><small>${s.alamat}</small></td>
-                <td><span class="badge ${s.status_supplier === 'Aktif' ? 'badge-success' : 'badge-secondary'}">${s.status_supplier}</span></td>
+                <td>${picContent}</td>
+                <td><small>${hpContent}</small></td>
+                <td><small>${s.alamat || '-'}</small></td>
+                <td><span class="badge ${s.status_supplier === 'Aktif' ? 'badge-success' : 'badge-secondary'}">${s.status_supplier || 'Aktif'}</span></td>
                 <td>
                     <button class="btn btn-secondary btn-sm" onclick="editModalSupplier('${s.id_supplier}')">Edit</button>
                     ${s.status_supplier === 'Aktif' ? `<button class="btn btn-sm" style="background:var(--danger-color);color:white;margin-left:4px;" onclick="nonaktifkanSupplier('${s.id_supplier}')"><i class='bx bx-trash'></i></button>` : ''}
                 </td>
             </tr>
-        `).join('');
+            `;
+        }).join('');
     }
 
     document.getElementById('adminSearchSupplier').addEventListener('input', function () {
-        const kw = this.value.toLowerCase();
-        const filtered = masterSupplierDataAdmin.filter(s => String(s.nama_supplier || '').toLowerCase().includes(kw));
+        const kw = this.value.toLowerCase().trim();
+        const filtered = masterSupplierDataAdmin.filter(s => {
+            const nameMatch = String(s.nama_supplier || '').toLowerCase().includes(kw);
+            const idMatch = String(s.id_supplier || '').toLowerCase().includes(kw);
+            const emailMatch = String(s.email || '').toLowerCase().includes(kw);
+            const alamatMatch = String(s.alamat || '').toLowerCase().includes(kw);
+            const picMatch = (s.pics || []).some(p =>
+                String(p.nama || '').toLowerCase().includes(kw) ||
+                String(p.hp || '').toLowerCase().includes(kw)
+            );
+            const legacyPicMatch = String(s.pic || '').toLowerCase().includes(kw);
+            const legacyHpMatch = String(s.nomor_hp || '').toLowerCase().includes(kw);
+            return nameMatch || idMatch || emailMatch || alamatMatch || picMatch || legacyPicMatch || legacyHpMatch;
+        });
         renderAdminSupplier(filtered);
     });
+
+    function tambahBarisPicForm(nama = '', hp = '') {
+        const container = document.getElementById('supplierPicContainer');
+        if (!container) return;
+        const rowDiv = document.createElement('div');
+        rowDiv.className = 'pic-row grid';
+        rowDiv.style.cssText = 'grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: center;';
+        rowDiv.innerHTML = `
+            <input type="text" class="input-control form-pic-nama" placeholder="Nama PIC" value="${nama}">
+            <input type="text" class="input-control form-pic-hp" placeholder="No. HP / WhatsApp" value="${hp}">
+            <button type="button" class="btn btn-sm" style="background: var(--danger-color); color: white; padding: 6px 10px;" onclick="hapusBarisPicForm(this)" title="Hapus PIC">
+                <i class='bx bx-trash'></i>
+            </button>
+        `;
+        container.appendChild(rowDiv);
+    }
+
+    function hapusBarisPicForm(btn) {
+        const container = document.getElementById('supplierPicContainer');
+        if (container.children.length <= 1) {
+            showToast("Minimal harus ada 1 baris PIC", "warning");
+            return;
+        }
+        btn.closest('.pic-row').remove();
+    }
 
     function bukaModalSupplier() {
         document.getElementById('modalAdminSupplierTitle').textContent = "Tambah Supplier Baru";
         document.getElementById('formSupplierId').value = "";
         document.getElementById('formSupplierNama').value = "";
-        document.getElementById('formSupplierPIC').value = "";
-        document.getElementById('formSupplierHp').value = "";
+        const container = document.getElementById('supplierPicContainer');
+        if (container) container.innerHTML = "";
+        tambahBarisPicForm();
         document.getElementById('formSupplierEmail').value = "";
         document.getElementById('formSupplierAlamat').value = "";
         document.getElementById('formSupplierStatusGroup').style.display = 'none';
@@ -996,8 +1164,18 @@
         document.getElementById('modalAdminSupplierTitle').textContent = "Edit Supplier";
         document.getElementById('formSupplierId').value = s.id_supplier;
         document.getElementById('formSupplierNama').value = s.nama_supplier;
-        document.getElementById('formSupplierPIC').value = s.pic;
-        document.getElementById('formSupplierHp').value = s.nomor_hp;
+
+        const container = document.getElementById('supplierPicContainer');
+        if (container) container.innerHTML = "";
+
+        if (s.pics && s.pics.length > 0) {
+            s.pics.forEach(p => tambahBarisPicForm(p.nama || '', p.hp || ''));
+        } else if (s.pic || s.nomor_hp) {
+            tambahBarisPicForm(s.pic || '', s.nomor_hp || '');
+        } else {
+            tambahBarisPicForm();
+        }
+
         document.getElementById('formSupplierEmail').value = s.email || "";
         document.getElementById('formSupplierAlamat').value = s.alamat || "";
         document.getElementById('formSupplierStatus').value = s.status_supplier || "Aktif";
@@ -1011,19 +1189,32 @@
 
     function simpanSupplier() {
         const idSupplier = document.getElementById('formSupplierId').value;
+        const namaSupplier = document.getElementById('formSupplierNama').value.trim();
+
+        if (!namaSupplier) return showToast("Nama supplier wajib diisi", "error");
+
+        const picRows = document.querySelectorAll('#supplierPicContainer .pic-row');
+        const pics = [];
+        picRows.forEach(row => {
+            const nama = row.querySelector('.form-pic-nama').value.trim();
+            const hp = row.querySelector('.form-pic-hp').value.trim();
+            if (nama || hp) {
+                pics.push({ nama, hp });
+            }
+        });
+
         const data = {
-            nama_supplier: document.getElementById('formSupplierNama').value,
-            pic: document.getElementById('formSupplierPIC').value,
-            nomor_hp: document.getElementById('formSupplierHp').value,
-            email: document.getElementById('formSupplierEmail').value,
-            alamat: document.getElementById('formSupplierAlamat').value,
+            nama_supplier: namaSupplier,
+            pics: pics,
+            pic: pics.length > 0 ? pics[0].nama : "",
+            nomor_hp: pics.length > 0 ? pics.map(p => p.hp).filter(Boolean).join(", ") : "",
+            email: document.getElementById('formSupplierEmail').value.trim(),
+            alamat: document.getElementById('formSupplierAlamat').value.trim()
         };
 
         if (idSupplier) {
             data.status_supplier = document.getElementById('formSupplierStatus').value;
         }
-
-        if (!data.nama_supplier) return showToast("Nama supplier wajib diisi", "error");
 
         const btn = document.getElementById('btnSimpanSupplier');
         btn.disabled = true;
