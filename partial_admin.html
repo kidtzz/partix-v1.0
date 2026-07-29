@@ -201,14 +201,13 @@
                         <th>Nama Supplier</th>
                         <th>PIC</th>
                         <th>Kontak</th>
-                        <th>Alamat</th>
                         <th>Status</th>
                         <th>Aksi</th>
                     </tr>
                 </thead>
                 <tbody id="adminSupplierTableBody">
                     <tr>
-                        <td colspan="7" style="text-align:center;">Memuat data...</td>
+                        <td colspan="6" style="text-align:center;">Memuat data...</td>
                     </tr>
                 </tbody>
             </table>
@@ -432,7 +431,7 @@
             </div>
 
             <div class="glass-card" style="padding: 16px; margin-bottom: 20px; background: rgba(0,0,0,0.02);">
-                <div class="grid" style="grid-template-columns: 2fr 1fr auto; gap: 8px; align-items: end;">
+                <div class="grid" style="grid-template-columns: 2fr 1fr 1fr auto; gap: 8px; align-items: end;">
                     <div class="input-group" style="margin-bottom: 0;">
                         <label>Supplier</label>
                         <select class="input-control" id="formBsSupplierSelect"></select>
@@ -440,6 +439,34 @@
                     <div class="input-group" style="margin-bottom: 0;">
                         <label>Harga Beli</label>
                         <input type="number" class="input-control" id="formBsHargaBeli" placeholder="0">
+                    </div>
+                    <div class="input-group" style="margin-bottom: 0;">
+                        <label>Diskon (%)</label>
+                        <input type="number" class="input-control" id="formBsDiskonPersen" placeholder="0" min="0" max="100">
+                    </div>
+                    <div style="grid-column: span 4;"></div>
+                    <div class="input-group" style="margin-bottom: 0;">
+                        <label>Satuan</label>
+                        <select class="input-control" id="formBsSatuan">
+                            <option value="PCS">PCS</option>
+                            <option value="BOTOL">BOTOL</option>
+                            <option value="BOX">BOX</option>
+                            <option value="SET">SET</option>
+                            <option value="LITER">LITER</option>
+                            <option value="LUSIN">LUSIN</option>
+                            <option value="PACK">PACK</option>
+                        </select>
+                    </div>
+                    <div class="input-group" style="margin-bottom: 0;">
+                        <label>Isi per Box / Pak</label>
+                        <input type="number" class="input-control" id="formBsIsiPerBox" placeholder="1" min="1" value="1">
+                    </div>
+                    <div class="input-group" style="margin-bottom: 0;">
+                        <label>Is Utama?</label>
+                        <select class="input-control" id="formBsIsUtama">
+                            <option value="false">Tidak</option>
+                            <option value="true">★ Ya (Utama)</option>
+                        </select>
                     </div>
                     <button class="btn btn-primary" onclick="tambahBarangSupplier()">Tambah</button>
                 </div>
@@ -451,12 +478,16 @@
                         <tr>
                             <th>Supplier</th>
                             <th>Harga Beli</th>
+                            <th>Diskon</th>
+                            <th>Satuan</th>
+                            <th>Isi/Box</th>
+                            <th>Status</th>
                             <th>Aksi</th>
                         </tr>
                     </thead>
                     <tbody id="adminBarangSupplierTableBody">
                         <tr>
-                            <td colspan="3" style="text-align:center;">Memuat data...</td>
+                            <td colspan="7" style="text-align:center;">Memuat data...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -496,11 +527,6 @@
             <div class="input-group">
                 <label>Email</label>
                 <input type="email" class="input-control" id="formSupplierEmail" placeholder="supplier@email.com">
-            </div>
-            <div class="input-group">
-                <label>Alamat Supplier</label>
-                <textarea id="formSupplierAlamat" class="input-control" rows="2"
-                    placeholder="Alamat lengkap"></textarea>
             </div>
             <div class="input-group" id="formSupplierStatusGroup" style="display:none;">
                 <label>Status Supplier</label>
@@ -1069,7 +1095,7 @@
     function renderAdminSupplier(data) {
         const tbody = document.getElementById('adminSupplierTableBody');
         if (data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Tidak ada data supplier.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">Tidak ada data supplier.</td></tr>`;
             return;
         }
 
@@ -1091,7 +1117,6 @@
                 <td><div style="font-weight: 600;">${s.nama_supplier}</div></td>
                 <td>${picContent}</td>
                 <td><small>${hpContent}</small></td>
-                <td><small>${s.alamat || '-'}</small></td>
                 <td><span class="badge ${s.status_supplier === 'Aktif' ? 'badge-success' : 'badge-secondary'}">${s.status_supplier || 'Aktif'}</span></td>
                 <td>
                     <button class="btn btn-secondary btn-sm" onclick="editModalSupplier('${s.id_supplier}')">Edit</button>
@@ -1108,7 +1133,7 @@
             const nameMatch = String(s.nama_supplier || '').toLowerCase().includes(kw);
             const idMatch = String(s.id_supplier || '').toLowerCase().includes(kw);
             const emailMatch = String(s.email || '').toLowerCase().includes(kw);
-            const alamatMatch = String(s.alamat || '').toLowerCase().includes(kw);
+        const alamatMatch = false; // kolom alamat dihapus di v1.1
             const picMatch = (s.pics || []).some(p =>
                 String(p.nama || '').toLowerCase().includes(kw) ||
                 String(p.hp || '').toLowerCase().includes(kw)
@@ -1153,7 +1178,7 @@
         if (container) container.innerHTML = "";
         tambahBarisPicForm();
         document.getElementById('formSupplierEmail').value = "";
-        document.getElementById('formSupplierAlamat').value = "";
+        // formSupplierAlamat dihapus di v1.1 (kolom Alamat dihapus)
         document.getElementById('formSupplierStatusGroup').style.display = 'none';
         document.getElementById('modalAdminSupplier').classList.add('active');
     }
@@ -1177,7 +1202,7 @@
         }
 
         document.getElementById('formSupplierEmail').value = s.email || "";
-        document.getElementById('formSupplierAlamat').value = s.alamat || "";
+        // formSupplierAlamat dihapus di v1.1
         document.getElementById('formSupplierStatus').value = s.status_supplier || "Aktif";
         document.getElementById('formSupplierStatusGroup').style.display = 'block';
         document.getElementById('modalAdminSupplier').classList.add('active');
@@ -1208,8 +1233,8 @@
             pics: pics,
             pic: pics.length > 0 ? pics[0].nama : "",
             nomor_hp: pics.length > 0 ? pics.map(p => p.hp).filter(Boolean).join(", ") : "",
-            email: document.getElementById('formSupplierEmail').value.trim(),
-            alamat: document.getElementById('formSupplierAlamat').value.trim()
+            email: document.getElementById('formSupplierEmail').value.trim()
+            // kolom alamat dihapus di v1.1
         };
 
         if (idSupplier) {
@@ -1336,17 +1361,33 @@
     function renderTableBarangSupplier(filteredData) {
         const tbody = document.getElementById('adminBarangSupplierTableBody');
         if (filteredData.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;">Belum ada supplier.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">Belum ada supplier.</td></tr>`;
             return;
         }
 
         tbody.innerHTML = filteredData.map(bs => {
             const sup = masterSupplierDataAdmin.find(s => s.id_supplier === bs.id_supplier);
             const namaSup = sup ? sup.nama_supplier : bs.id_supplier;
+            const diskon = bs.diskon_persen ? bs.diskon_persen : '-';
+            const isUtama = bs.is_utama == true || bs.is_utama === "TRUE" || bs.is_utama === true;
+            const satuan = bs.satuan || 'PCS';
+            const isiPerBox = Number(bs.isi_per_box) || 1;
             return `
                 <tr>
-                    <td>${namaSup}</td>
+                    <td>
+                        ${isUtama ? '<span style="color:#f59e0b;font-weight:700;" title="Supplier Utama">★</span> ' : ''}
+                        ${namaSup}
+                    </td>
                     <td>Rp ${Number(bs.harga_beli || 0).toLocaleString('id-ID')}</td>
+                    <td>${diskon !== '-' ? diskon + '%' : '-'}</td>
+                    <td>${satuan}</td>
+                    <td>${isiPerBox}</td>
+                    <td>
+                        ${isUtama
+                            ? '<span class="badge badge-success">Utama</span>'
+                            : `<button class="btn btn-sm" style="background:#f59e0b;color:white;font-size:11px;padding:3px 8px;" onclick="setUtamaBarangSupplier('${bs.id_barang_supplier}')">Set Utama</button>`
+                        }
+                    </td>
                     <td>
                         <button class="btn btn-sm" style="background:var(--danger-color);color:white;" onclick="hapusTautanBarangSupplier('${bs.id_barang_supplier}')"><i class='bx bx-trash'></i></button>
                     </td>
@@ -1358,6 +1399,7 @@
     function tambahBarangSupplier() {
         const idSupplier = document.getElementById('formBsSupplierSelect').value;
         const hargaBeli = document.getElementById('formBsHargaBeli').value;
+        const diskonPersen = document.getElementById('formBsDiskonPersen').value || 0;
 
         if (!idSupplier || !hargaBeli) {
             return showToast("Supplier dan Harga Beli wajib diisi", "error");
@@ -1366,17 +1408,23 @@
         const payload = {
             id_barang: currentIdBarangUntukSupplier,
             id_supplier: idSupplier,
-            harga_beli: hargaBeli
+            harga_beli: hargaBeli,
+            diskon_persen: diskonPersen,
+            satuan: document.getElementById('formBsSatuan').value || 'PCS',
+            isi_per_box: Number(document.getElementById('formBsIsiPerBox').value) || 1,
+            is_utama: document.getElementById('formBsIsUtama').value === 'true'
         };
 
         BackendAPI.call('tambahBarangSupplier', [payload]).then((resId) => {
             showToast("Supplier ditautkan", "success");
             document.getElementById('formBsHargaBeli').value = "";
+            document.getElementById('formBsDiskonPersen').value = "";
 
             const existing = currentBarangSupplierData.find(x => x.id_barang === payload.id_barang && x.id_supplier === payload.id_supplier);
             if (existing) {
                 existing.status = "Aktif";
                 existing.harga_beli = payload.harga_beli;
+                existing.diskon_persen = diskonPersen;
             } else {
                 currentBarangSupplierData.push({
                     id_barang_supplier: resId,
@@ -1390,6 +1438,7 @@
                 if (globalExisting) {
                     globalExisting.status = "Aktif";
                     globalExisting.harga_beli = payload.harga_beli;
+                    globalExisting.diskon_persen = diskonPersen;
                 } else {
                     semuaBarangSupplierDataAdmin.push({
                         id_barang_supplier: resId,
@@ -1402,9 +1451,9 @@
             const filtered = currentBarangSupplierData.filter(row => row.id_barang === currentIdBarangUntukSupplier && row.status === "Aktif");
             renderTableBarangSupplier(filtered);
         }).catch(err => {
-            // Gunakan mock insert jika backend gagal
             showToast("Backend gagal, menambahkan data dummy secara lokal.", "warning");
             document.getElementById('formBsHargaBeli').value = "";
+            document.getElementById('formBsDiskonPersen').value = "";
             currentBarangSupplierData.push({
                 id_barang_supplier: 'BS-DUMMY-' + Date.now(),
                 ...payload,
@@ -1435,6 +1484,30 @@
             }
 
             const filtered = currentBarangSupplierData.filter(row => row.id_barang === currentIdBarangUntukSupplier && row.status === "Aktif");
+            renderTableBarangSupplier(filtered);
+        }).catch(err => showToast(err.message, "error"));
+    }
+
+    function setUtamaBarangSupplier(idBs) {
+        if (!confirm("Set supplier ini sebagai Supplier Utama? Supplier utama sebelumnya akan diubah menjadi biasa.")) return;
+
+        const existing = currentBarangSupplierData.find(x => x.id_barang_supplier === idBs);
+        if (!existing) return;
+
+        const payload = { ...existing, is_utama: true };
+        BackendAPI.call('updateBarangSupplier', [idBs, payload]).then(() => {
+            showToast("Supplier Utama berhasil diperbarui", "success");
+
+            // Update local cache: set semua baris untuk barang ini jadi bukan utama, lalu set yang dipilih
+            currentBarangSupplierData.forEach(bs => {
+                if (bs.id_barang === existing.id_barang) {
+                    bs.is_utama = (bs.id_barang_supplier === idBs);
+                }
+            });
+
+            const filtered = currentBarangSupplierData.filter(row =>
+                row.id_barang === currentIdBarangUntukSupplier && row.status === "Aktif"
+            );
             renderTableBarangSupplier(filtered);
         }).catch(err => showToast(err.message, "error"));
     }

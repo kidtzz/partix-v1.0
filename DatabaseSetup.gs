@@ -10,9 +10,13 @@ const EXISTING_SPREADSHEET_ID = "";
 // ==============================================================================
 
 const DB_SCHEMA = {
-  "Barang": ["id_barang", "barcode1", "barcode2", "nama_barang", "kategori", "merk", "satuan", "isi_per_box", "lokasi_rak", "minimum_stock", "stok_saat_ini", "status_barang"],
-  "Supplier": ["id_supplier", "nama_supplier", "pic", "nomor_hp", "email", "alamat", "status_supplier"],
-  "Barang_Supplier": ["id_barang_supplier", "id_barang", "id_supplier", "harga_beli", "kode_barang_supplier", "is_utama", "status"],
+  // Sheet Barang = referensi scan barcode: id, barcode, nama, merk, kategori, status
+  // Semua data inventory (satuan, stok, harga beli, lokasi) ada di Barang_Supplier
+  "Barang": ["id_barang", "barcode1", "barcode2", "nama_barang", "merk", "kategori", "status_barang"],
+  "Supplier": ["id_supplier", "nama_supplier", "pic", "nomor_hp", "email", "status_supplier"],
+  // Barang_Supplier = data inventory lengkap per relasi barang-supplier
+  // stok_saat_ini, minimum_stok, lokasi_rak hanya diisi di baris is_utama=true
+  "Barang_Supplier": ["id_barang_supplier", "id_barang", "id_supplier", "harga_beli", "diskon_persen", "satuan", "isi_per_box", "stok_saat_ini", "minimum_stok", "lokasi_rak", "kode_barang_supplier", "is_utama", "status"],
   "Harga": ["id_harga", "id_barang", "harga_regular", "harga_langganan", "harga_teman", "tanggal_berlaku", "status_harga", "keterangan_perubahan"],
   "Stock_Movement": ["id_movement", "tanggal", "id_barang", "id_supplier", "tipe_pergerakan", "qty_box", "qty_pcs", "harga_beli", "nomor_invoice_supplier", "batch_barang", "alasan_perubahan", "user"],
   "Penjualan": ["no_invoice", "tanggal", "kasir", "kategori_customer", "subtotal", "total", "metode_pembayaran", "detail_pembayaran", "kembalian", "status_transaksi"],
@@ -108,22 +112,29 @@ function installDatabase(existingSheetId) {
   pengaturanSheet.appendRow(["DISKON_LANGGANAN", "10"]);
   pengaturanSheet.appendRow(["DISKON_TEMAN", "20"]);
   
-  // 3. Supplier
+  // 3. Supplier — hapus kolom alamat sesuai PRD v1.1 update
   const supplierSheet = ss.getSheetByName("Supplier");
-  supplierSheet.appendRow(["SUP-001", "PT Astra Otoparts", "Budi Santoso", "08123456789", "budi@astra.co.id", "Jl. Sudirman No. 1, Jakarta", "Aktif"]);
-  supplierSheet.appendRow(["SUP-002", "CV Maju Motor", "Andi", "08987654321", "andi@majumotor.com", "Jl. Merdeka No. 45, Bandung", "Aktif"]);
+  // Schema: id_supplier, nama_supplier, pic (JSON), nomor_hp, email, status_supplier
+  supplierSheet.appendRow(["SUP-001", "PT Astra Otoparts", JSON.stringify([{nama:"Budi Santoso",hp:"08123456789"}]), "08123456789", "budi@astra.co.id", "Aktif"]);
+  supplierSheet.appendRow(["SUP-002", "CV Maju Motor", JSON.stringify([{nama:"Andi",hp:"08987654321"}]), "08987654321", "andi@majumotor.com", "Aktif"]);
 
-  // 4. Barang
+  // 4. Barang — hanya identitas produk, TIDAK ada stok/satuan/lokasi
   const barangSheet = ss.getSheetByName("Barang");
-  barangSheet.appendRow(["BRG-00001", "8998989", "123456", "Oli Pertamina Enduro 4T", "Oli", "Pertamina", "BOTOL", 24, "Rak A1", 10, 50, "Aktif"]);
-  barangSheet.appendRow(["BRG-00002", "777777", "888888", "Busi NGK C7HSA", "Sparepart", "NGK", "PCS", 10, "Rak B2", 5, 20, "Aktif"]);
-  barangSheet.appendRow(["BRG-00003", "55555", "66666", "Kampas Rem Depan Supra", "Sparepart", "Honda", "SET", 50, "Rak C3", 5, 15, "Aktif"]);
+  // Schema: id_barang, barcode1, barcode2, nama_barang, merk, kategori, status_barang
+  barangSheet.appendRow(["BRG-00001", "8998989", "123456", "Oli Pertamina Enduro 4T", "Pertamina", "Oli", "Aktif"]);
+  barangSheet.appendRow(["BRG-00002", "777777", "888888", "Busi NGK C7HSA", "NGK", "Sparepart", "Aktif"]);
+  barangSheet.appendRow(["BRG-00003", "55555", "66666", "Kampas Rem Depan Supra", "Honda", "Sparepart", "Aktif"]);
 
-  // 5. Barang_Supplier
+  // 5. Barang_Supplier — semua data inventory per relasi barang-supplier
   const barangSupplierSheet = ss.getSheetByName("Barang_Supplier");
-  barangSupplierSheet.appendRow(["BS-001", "BRG-00001", "SUP-001", 35000, "AST-OLI-01", true, "Aktif"]);
-  barangSupplierSheet.appendRow(["BS-002", "BRG-00002", "SUP-002", 12000, "MM-BUSI", true, "Aktif"]);
-  barangSupplierSheet.appendRow(["BS-003", "BRG-00003", "SUP-001", 20000, "AST-REM", true, "Aktif"]);
+  // Schema: id_bs, id_barang, id_supplier, harga_beli, diskon_persen, satuan, isi_per_box,
+  //         stok_saat_ini, minimum_stok, lokasi_rak, kode_barang_supplier, is_utama, status
+  // CATATAN: stok_saat_ini, minimum_stok, lokasi_rak hanya diisi di is_utama=true
+  barangSupplierSheet.appendRow(["BS-001", "BRG-00001", "SUP-001", 35000, 25, "BOTOL", 24, 50, 10, "Rak A1", "AST-OLI-01", true,  "Aktif"]);
+  barangSupplierSheet.appendRow(["BS-002", "BRG-00002", "SUP-002", 12000, 15, "PCS",   10, 20,  5, "Rak B2", "MM-BUSI",    true,  "Aktif"]);
+  barangSupplierSheet.appendRow(["BS-003", "BRG-00003", "SUP-001", 20000, 20, "SET",    1, 15,  5, "Rak C3", "AST-REM",    true,  "Aktif"]);
+  // Supplier ke-2 untuk Oli — stok/lokasi kosong (hanya is_utama yang punya stok)
+  barangSupplierSheet.appendRow(["BS-004", "BRG-00001", "SUP-002", 36000, 20, "BOTOL", 24,  0,  0, "",       "MM-OLI-01",  false, "Aktif"]);
 
   // 6. Harga (Satu baris menampung 3 harga sekaligus)
   const hargaSheet = ss.getSheetByName("Harga");

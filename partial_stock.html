@@ -64,7 +64,7 @@
                 style="margin-bottom: 16px; padding: 16px; border: 1px solid var(--border-color); border-radius: 8px; background: #fafbfc;">
                 <h4 style="margin-top:0; margin-bottom: 12px; font-size: 14px; color: var(--text-main);"><i
                         class='bx bx-link'></i> Tautkan Supplier Awal (Opsional)</h4>
-                <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div class="grid" style="grid-template-columns: 2fr 1fr 1fr; gap: 12px;">
                     <div class="input-group" style="margin-bottom:0;">
                         <label>Pilih Supplier</label>
                         <select id="stkIdSupplier" class="input-control">
@@ -72,15 +72,26 @@
                         </select>
                     </div>
                     <div class="input-group" style="margin-bottom:0;">
-                        <label>Harga Beli (Total/Box)</label>
+                        <label>Harga Beli</label>
                         <input type="number" id="stkHargaBeli" class="input-control" placeholder="Rp">
+                    </div>
+                    <div class="input-group" style="margin-bottom:0;">
+                        <label>Diskon (%)</label>
+                        <input type="number" id="stkDiskonPersen" class="input-control" placeholder="0" min="0"
+                            max="100">
                     </div>
                 </div>
             </div>
 
-            <div class="input-group">
-                <label>Qty (Box)</label>
-                <input type="number" class="input-control" id="stkQtyBox" placeholder="0">
+            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="input-group" style="margin-bottom:0;">
+                    <label>Stok Barang (Box)</label>
+                    <input type="number" class="input-control" id="stkQtyBox" placeholder="0">
+                </div>
+                <div class="input-group" style="margin-bottom:0;">
+                    <label>Satuan (PCS)</label>
+                    <input type="number" class="input-control" id="stkSatuanPcs" placeholder="1" value="1">
+                </div>
             </div>
 
             <div class="input-group mt-3">
@@ -144,7 +155,7 @@
             </div>
 
             <div class="glass-card" style="padding: 16px; margin-bottom: 20px; background: rgba(0,0,0,0.02);">
-                <div class="grid" style="grid-template-columns: 2fr 1fr auto; gap: 8px; align-items: end;">
+                <div class="grid" style="grid-template-columns: 2fr 1fr 1fr auto; gap: 8px; align-items: end;">
                     <div class="input-group" style="margin-bottom: 0;">
                         <label>Supplier</label>
                         <select class="input-control" id="formStkSupplierSelect"></select>
@@ -152,6 +163,11 @@
                     <div class="input-group" style="margin-bottom: 0;">
                         <label>Harga Beli</label>
                         <input type="number" class="input-control" id="formStkHargaBeli" placeholder="0">
+                    </div>
+                    <div class="input-group" style="margin-bottom: 0;">
+                        <label>Diskon (%)</label>
+                        <input type="number" class="input-control" id="formStkDiskonPersen" placeholder="0" min="0"
+                            max="100">
                     </div>
                     <button class="btn btn-primary" onclick="tambahStockSupplier()">Tambah</button>
                 </div>
@@ -163,12 +179,13 @@
                         <tr>
                             <th>Supplier</th>
                             <th>Harga Beli</th>
-                            <th>Aksi</th>
+                            <th>Diskon (%)</th>
+                            <th style="text-align:center;">Aksi</th>
                         </tr>
                     </thead>
                     <tbody id="stockBarangSupplierTableBody">
                         <tr>
-                            <td colspan="3" style="text-align:center;">Memuat data...</td>
+                            <td colspan="4" style="text-align:center;">Memuat data...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -245,23 +262,28 @@
 
         tbody.innerHTML = data.map(b => {
             const stok = Number(b.stok_saat_ini) || 0;
-            const isWarning = stok <= currentMinStok;
+            const minStok = Number(b.minimum_stok) || currentMinStok;
+            const isWarning = stok <= minStok;
             const statusVal = b.status_barang || 'Aktif';
             const statusBadge = statusVal === "Aktif" ? "badge-success" : "badge-secondary";
+            const satuan = b.satuan || 'PCS';
+            const isiPerBox = Number(b.isi_per_box) || 1;
+            const barcodeStr = [b.barcode1, b.barcode2].filter(Boolean).join(', ');
 
             return `
             <tr class="main-row hoverable-row" onclick="toggleDetailSupplierStock('${b.id_barang}')" style="cursor: pointer; border-bottom: none;">
                 <td>${b.id_barang}</td>
                 <td>
                     <div style="font-weight: 600;">${b.nama_barang}</div>
-                    <small style="color:gray;">${b.barcode}</small><br>
+                    <small style="color:gray;">${barcodeStr || '-'}</small><br>
                     <small style="color: var(--primary-color);">Lihat Detail Supplier <i class='bx bx-chevron-down'></i></small>
                 </td>
                 <td>
                     <span style="color: ${isWarning ? 'var(--warning-color)' : 'inherit'}; font-weight: ${isWarning ? '600' : '400'};">
-                        ${stok} Box
+                        ${stok} ${satuan}
+                        ${isWarning ? '<span style="color:var(--warning-color);" title="Stok di bawah minimum!">⚠️</span>' : ''}
                     </span><br>
-                    <small style="color: var(--text-muted);">isi ${b.isi_per_box} PCS</small>
+                    <small style="color: var(--text-muted);">isi ${isiPerBox} PCS/unit &bull; min: ${minStok}</small>
                 </td>
                 <td><span class="badge ${statusBadge}">${statusVal}</span></td>
                 <td onclick="event.stopPropagation();" style="white-space: nowrap;">
@@ -320,48 +342,49 @@
                 if (wrapper && wrapper.style.gridTemplateRows === '0fr') detailRow.style.display = 'none';
             }, 300);
         }
-    }
-
-    function loadDetailSupplierStock(idBarang) {
+    } function loadDetailSupplierStock(idBarang) {
         const container = document.getElementById(`detail-content-stock-${idBarang}`);
 
-        const loadSupplierPromise = masterSupplierDataStock.length === 0
-            ? BackendAPI.call('getSemuaSupplier').then(res => { masterSupplierDataStock = res; })
-            : Promise.resolve();
+        // Gunakan data suppliers yang sudah di-embed di getStockList (tidak perlu call Barang_Supplier lagi)
+        const b = masterStockList.find(x => x.id_barang === idBarang);
+        if (!b) {
+            container.innerHTML = `<div style="text-align:center; color: var(--text-muted); font-size: 14px;"><i class='bx bx-info-circle'></i> Data barang tidak ditemukan.</div>`;
+            return;
+        }
 
-        const loadLinkPromise = semuaBarangSupplierDataStock === null
-            ? BackendAPI.call('getBarangSupplier').then(res => { semuaBarangSupplierDataStock = res; })
-            : Promise.resolve();
+        const suppliers = b.suppliers || [];
+        if (suppliers.length === 0) {
+            container.innerHTML = `<div style="text-align:center; color: var(--text-muted); font-size: 14px;"><i class='bx bx-info-circle'></i> Belum ada data harga supplier yang ditautkan ke barang ini.</div>`;
+            return;
+        }
 
-        Promise.all([loadSupplierPromise, loadLinkPromise]).then(() => {
-            const links = semuaBarangSupplierDataStock.filter(x => x.id_barang === idBarang && x.status === "Aktif");
-            if (links.length === 0) {
-                container.innerHTML = `<div style="text-align:center; color: var(--text-muted); font-size: 14px;"><i class='bx bx-info-circle'></i> Belum ada data harga supplier yang ditautkan ke barang ini.</div>`;
-                return;
-            }
-
-            let html = `<h4 style="margin-top:0; margin-bottom:12px; font-size:14px; color:var(--text-main); display:flex; align-items:center; gap:6px;"><i class='bx bx-buildings'></i> Daftar Harga dari Supplier</h4>`;
-            html += `<table class="table" style="margin:0; background: transparent; box-shadow: none;">
-                        <thead style="background: rgba(0,0,0,0.02);">
-                            <tr>
-                                <th style="padding: 8px 12px; border-radius: 8px 0 0 8px;">Nama Supplier</th>
-                                <th style="padding: 8px 12px; border-radius: 0 8px 8px 0;">Harga Beli</th>
-                            </tr>
-                        </thead>
-                        <tbody>`;
-            links.forEach(l => {
-                const sup = masterSupplierDataStock.find(s => s.id_supplier === l.id_supplier);
-                const supName = sup ? sup.nama_supplier : l.id_supplier;
-                html += `<tr>
-                            <td style="padding: 8px 12px; border-bottom: 1px solid #eee;">${supName}</td>
-                            <td style="padding: 8px 12px; border-bottom: 1px solid #eee; font-weight:600;">Rp ${Number(l.harga_beli).toLocaleString('id-ID')}</td>
-                         </tr>`;
-            });
-            html += `</tbody></table>`;
-            container.innerHTML = html;
-        }).catch(err => {
-            container.innerHTML = `<div style="color:var(--danger-color); text-align:center;"><i class='bx bx-error'></i> Gagal memuat detail supplier: ${err.message}</div>`;
+        let html = `<h4 style="margin-top:0; margin-bottom:12px; font-size:14px; color:var(--text-main); display:flex; align-items:center; gap:6px;"><i class='bx bx-buildings'></i> Daftar Harga dari Supplier</h4>`;
+        html += `<table class="table" style="margin:0; background: transparent; box-shadow: none;">
+                    <thead style="background: rgba(0,0,0,0.02);">
+                        <tr>
+                            <th style="padding: 8px 12px;">Nama Supplier</th>
+                            <th style="padding: 8px 12px;">Harga Beli</th>
+                            <th style="padding: 8px 12px;">Diskon</th>
+                            <th style="padding: 8px 12px;">Satuan</th>
+                            <th style="padding: 8px 12px;">Isi/Box</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+        suppliers.forEach(s => {
+            const isUtama = s.is_utama == true || s.is_utama === "TRUE";
+            html += `<tr>
+                        <td style="padding: 8px 12px; border-bottom: 1px solid #eee;">
+                            ${isUtama ? '<span style="color:#f59e0b;font-weight:700;" title="Supplier Utama">★</span> ' : ''}
+                            ${s.nama_supplier}
+                        </td>
+                        <td style="padding: 8px 12px; border-bottom: 1px solid #eee; font-weight:600;">Rp ${Number(s.harga_beli).toLocaleString('id-ID')}</td>
+                        <td style="padding: 8px 12px; border-bottom: 1px solid #eee;">${s.diskon_persen ? s.diskon_persen + '%' : '-'}</td>
+                        <td style="padding: 8px 12px; border-bottom: 1px solid #eee;">${s.satuan || 'PCS'}</td>
+                        <td style="padding: 8px 12px; border-bottom: 1px solid #eee;">${Number(s.isi_per_box) || 1}</td>
+                     </tr>`;
         });
+        html += `</tbody></table>`;
+        container.innerHTML = html;
     }
 
     // Search filter
@@ -414,12 +437,12 @@
         document.getElementById('editStockId').value = b.id_barang;
         document.getElementById('editStockNama').value = b.nama_barang;
 
-        const bc = String(b.barcode || '').split(',').map(s => s.trim());
-        document.getElementById('editStockBarcode1').value = bc[0] || "";
-        document.getElementById('editStockBarcode2').value = bc[1] || "";
+        document.getElementById('editStockBarcode1').value = b.barcode1 || "";
+        document.getElementById('editStockBarcode2').value = b.barcode2 || "";
         document.getElementById('editStockStatus').value = b.status_barang || "Aktif";
+        // Stok dan satuan dari Barang_Supplier (is_utama)
         document.getElementById('editStockJumlahBox').value = b.stok_saat_ini || 0;
-        document.getElementById('editStockSatuanPcs').value = b.isi_per_box || 0;
+        document.getElementById('editStockSatuanPcs').value = b.isi_per_box || 1;
 
         if (masterSupplierDataStock.length === 0) {
             BackendAPI.call('getSemuaSupplier').then(data => {
@@ -469,18 +492,21 @@
     function renderTableStockBarangSupplier(filteredData) {
         const tbody = document.getElementById('stockBarangSupplierTableBody');
         if (filteredData.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;">Belum ada supplier.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">Belum ada supplier.</td></tr>`;
             return;
         }
 
         tbody.innerHTML = filteredData.map(bs => {
             const sup = masterSupplierDataStock.find(s => s.id_supplier === bs.id_supplier);
             const namaSup = sup ? sup.nama_supplier : bs.id_supplier;
+            const diskon = bs.diskon_persen ? bs.diskon_persen : '-';
             return `
-                <tr>
+                <tr id="row-stk-${bs.id_barang_supplier}">
                     <td>${namaSup}</td>
                     <td>Rp ${Number(bs.harga_beli || 0).toLocaleString('id-ID')}</td>
-                    <td>
+                    <td>${diskon !== '-' ? diskon + '%' : '-'}</td>
+                    <td style="text-align:center;">
+                        <button class="btn btn-sm" style="background:var(--warning-color,#f59e0b);color:white;margin-right:4px;" onclick="editTautanStockSupplier('${bs.id_barang_supplier}', ${bs.harga_beli || 0}, ${bs.diskon_persen || 0})"><i class='bx bx-edit'></i></button>
                         <button class="btn btn-sm" style="background:var(--danger-color);color:white;" onclick="hapusTautanStockSupplier('${bs.id_barang_supplier}')"><i class='bx bx-trash'></i></button>
                     </td>
                 </tr>
@@ -488,10 +514,61 @@
         }).join('');
     }
 
+    function editTautanStockSupplier(idBs, hargaBeli, diskonPersen) {
+        const row = document.getElementById('row-stk-' + idBs);
+        if (!row) return;
+        row.innerHTML = `
+            <td colspan="3">
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <div style="flex:1;">
+                        <small style="display:block;color:var(--text-muted);margin-bottom:2px;">Harga Beli</small>
+                        <input type="number" id="editStkHarga-${idBs}" class="input-control" value="${hargaBeli}" style="height:32px;font-size:13px;">
+                    </div>
+                    <div style="flex:0 0 90px;">
+                        <small style="display:block;color:var(--text-muted);margin-bottom:2px;">Diskon (%)</small>
+                        <input type="number" id="editStkDiskon-${idBs}" class="input-control" value="${diskonPersen}" min="0" max="100" style="height:32px;font-size:13px;">
+                    </div>
+                </div>
+            </td>
+            <td style="text-align:center;">
+                <button class="btn btn-sm" style="background:var(--primary-color);color:white;margin-right:4px;" onclick="simpanEditTautanStockSupplier('${idBs}')"><i class='bx bx-check'></i></button>
+                <button class="btn btn-sm" style="background:var(--secondary-color,#6b7280);color:white;" onclick="batalEditTautanStockSupplier()"><i class='bx bx-x'></i></button>
+            </td>
+        `;
+    }
+
+    function simpanEditTautanStockSupplier(idBs) {
+        const harga = document.getElementById('editStkHarga-' + idBs);
+        const diskon = document.getElementById('editStkDiskon-' + idBs);
+        if (!harga) return;
+
+        const newHarga = Number(harga.value);
+        const newDiskon = Number(diskon ? diskon.value : 0) || 0;
+
+        if (!newHarga) return showToast("Harga Beli tidak boleh kosong.", "error");
+
+        showToast("Menyimpan...", "info");
+        BackendAPI.call('updateBarangSupplier', [idBs, {
+            harga_beli: newHarga,
+            diskon_persen: newDiskon,
+            status: "Aktif"
+        }]).then(() => {
+            showToast("Berhasil diupdate", "success");
+            const idBarang = document.getElementById('editStockId').value;
+            loadStockBarangSupplier(idBarang);
+        }).catch(err => showToast(err.message, "error"));
+    }
+
+    function batalEditTautanStockSupplier() {
+        const idBarang = document.getElementById('editStockId').value;
+        loadStockBarangSupplier(idBarang);
+    }
+
     function tambahStockSupplier() {
         const idBarang = document.getElementById('editStockId').value;
         const idSupplier = document.getElementById('formStkSupplierSelect').value;
         const hargaBeli = document.getElementById('formStkHargaBeli').value;
+        const diskonPersen = document.getElementById('formStkDiskonPersen').value || 0;
 
         if (!idSupplier || !hargaBeli) {
             return showToast("Pilih supplier dan isi harga beli.", "error");
@@ -501,10 +578,12 @@
         BackendAPI.call('tambahBarangSupplier', [{
             id_barang: idBarang,
             id_supplier: idSupplier,
-            harga_beli: hargaBeli
+            harga_beli: hargaBeli,
+            diskon_persen: diskonPersen
         }]).then(() => {
             showToast("Supplier berhasil ditambahkan", "success");
             document.getElementById('formStkHargaBeli').value = '';
+            document.getElementById('formStkDiskonPersen').value = '';
             loadStockBarangSupplier(idBarang);
             if (typeof loadMasterBarang === 'function') loadMasterBarang();
         }).catch(err => showToast(err.message, "error"));
@@ -529,26 +608,34 @@
 
         const bc1 = document.getElementById('editStockBarcode1').value.trim();
         const bc2 = document.getElementById('editStockBarcode2').value.trim();
-        const barcodeCombined = [bc1, bc2].filter(x => x !== '').join(',');
 
-        const data = {
+        // Data untuk Master Barang (nama, barcode, status)
+        const dataBarang = {
             nama_barang: document.getElementById('editStockNama').value,
-            barcode: barcodeCombined,
-            kategori: b.kategori,
-            merk: b.merk,
-            isi_per_box: document.getElementById('editStockSatuanPcs').value || b.isi_per_box,
-            lokasi_rak: b.lokasi_rak || "-",
-            stok_awal: document.getElementById('editStockJumlahBox').value || b.stok_saat_ini,
+            barcode1: bc1,
+            barcode2: bc2,
+            kategori: b.kategori || "",
+            merk: b.merk || "",
             status_barang: document.getElementById('editStockStatus').value || b.status_barang
         };
 
-        if (!data.nama_barang) return showToast("Nama barang wajib diisi", "error");
+        // Data untuk Stok (disimpan di Barang_Supplier is_utama)
+        const dataStok = {
+            stok_saat_ini: Number(document.getElementById('editStockJumlahBox').value) || b.stok_saat_ini,
+            isi_per_box: Number(document.getElementById('editStockSatuanPcs').value) || b.isi_per_box
+        };
+
+        if (!dataBarang.nama_barang) return showToast("Nama barang wajib diisi", "error");
 
         const btn = document.getElementById('btnSimpanEditStock');
         btn.disabled = true;
         btn.innerHTML = "Menyimpan...";
 
-        BackendAPI.call('updateMasterBarang', [idBarang, data]).then(() => {
+        // Dua panggilan parallel: update barang + update stok di BS
+        Promise.all([
+            BackendAPI.call('updateMasterBarang', [idBarang, dataBarang]),
+            BackendAPI.call('updateStokBarang', [idBarang, dataStok])
+        ]).then(() => {
             showToast("Data barang berhasil diupdate", "success");
             tutupModalEditStock();
             initStockView(); // refresh table
@@ -612,6 +699,8 @@
         document.getElementById('stkNamaBarang').value = '';
         document.getElementById('stkQtyBox').value = '';
         document.getElementById('stkHargaBeli').value = '';
+        if (document.getElementById('stkDiskonPersen')) document.getElementById('stkDiskonPersen').value = '';
+        if (document.getElementById('stkSatuanPcs')) document.getElementById('stkSatuanPcs').value = '1';
         const sup = document.getElementById('stkIdSupplier');
         if (sup) sup.value = '';
     }
@@ -642,7 +731,9 @@
         const idBarang = document.getElementById('stkIdBarang').value;
         const idSupplier = document.getElementById('stkIdSupplier').value;
         const qtyBox = Number(document.getElementById('stkQtyBox').value);
-        const hargaBeli = Number(document.getElementById('stkHargaBeli').value);
+        const hargaBeli = Number(document.getElementById('stkHargaBeli').value) || 0;
+        const diskonPersen = Number(document.getElementById('stkDiskonPersen') ? document.getElementById('stkDiskonPersen').value : 0) || 0;
+        const satuanPcs = Number(document.getElementById('stkSatuanPcs') ? document.getElementById('stkSatuanPcs').value : 1) || 1;
         const tanggal = document.getElementById('stkTanggal').value;
 
         if (!idBarang || !qtyBox || !tanggal) {
@@ -653,15 +744,16 @@
         btn.disabled = true;
         btn.innerHTML = "Menyimpan...";
 
-        BackendAPI.call('inputBarangMasuk', [idBarang, idSupplier, qtyBox, hargaBeli, tanggal])
+        BackendAPI.call('inputBarangMasuk', [idBarang, idSupplier, qtyBox, hargaBeli, tanggal, diskonPersen, satuanPcs])
             .then(res => {
                 showToast('Barang masuk berhasil disimpan', 'success');
                 closeStockModal();
 
+                // Update cache lokal stok (stok dalam satuan PCS)
                 const b = masterStockList.find(x => x.id_barang === idBarang);
                 if (b) {
                     const isiPerBox = Number(b.isi_per_box) || 1;
-                    b.stok_saat_ini = (Number(b.stok_saat_ini) || 0) + (qtyBox * isiPerBox);
+                    b.stok_saat_ini = res.stokBaru !== undefined ? res.stokBaru : ((Number(b.stok_saat_ini) || 0) + (qtyBox * isiPerBox));
                 }
                 renderStockTable(masterStockList);
             })

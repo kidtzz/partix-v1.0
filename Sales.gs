@@ -14,6 +14,11 @@ function getBarangUntukPOS() {
   const bsList = SheetService.readSheet("Barang_Supplier").filter(bs => bs.status === "Aktif");
   
   return barangList.filter(b => b.status_barang === "Aktif").map(b => {
+    // Stok diambil dari baris is_utama=true di Barang_Supplier
+    const utama = bsList.find(bs => bs.id_barang === b.id_barang &&
+      (bs.is_utama == true || bs.is_utama === "TRUE"));
+    const stok = utama ? (Number(utama.stok_saat_ini) || 0) : 0;
+
     // Harga modal dari supplier tertinggi
     const supplierPrices = bsList.filter(bs => bs.id_barang === b.id_barang).map(bs => Number(bs.harga_beli));
     const maxHargaBeli = supplierPrices.length > 0 ? Math.max(...supplierPrices) : 0;
@@ -36,7 +41,7 @@ function getBarangUntukPOS() {
     return {
       id_barang: b.id_barang,
       nama_barang: b.nama_barang,
-      stok_saat_ini: Number(b.stok_saat_ini),
+      stok_saat_ini: stok,
       barcode1: b.barcode1,
       barcode2: b.barcode2,
       harga_modal: maxHargaBeli,
@@ -64,6 +69,12 @@ function scanBarcodePenjualan(barcode) {
   if (!barang) throw new Error("Barang tidak ditemukan!");
   if (barang.status_barang !== "Aktif") throw new Error("Barang berstatus Nonaktif.");
   
+  // Stok dari Barang_Supplier (is_utama=true)
+  const bsList = SheetService.readSheet("Barang_Supplier").filter(bs => bs.status === "Aktif");
+  const utama = bsList.find(bs => bs.id_barang === barang.id_barang &&
+    (bs.is_utama == true || bs.is_utama === "TRUE"));
+  const stok = utama ? (Number(utama.stok_saat_ini) || 0) : 0;
+
   const h = SheetService.readSheet("Harga").find(h => h.id_barang === barang.id_barang && h.status_harga === "Aktif");
   const diskon = getPengaturanDiskon();
   const regPrice = h ? Number(h.harga_regular) : 0;
@@ -83,7 +94,7 @@ function scanBarcodePenjualan(barcode) {
   return {
     id_barang: barang.id_barang,
     nama_barang: barang.nama_barang,
-    stok_saat_ini: Number(barang.stok_saat_ini),
+    stok_saat_ini: stok,
     barcode: barang.barcode,
     harga: mappedHarga
   };
@@ -114,6 +125,7 @@ function simpanTransaksi(cartItems, tipeHarga, metodeBayar, detailBayar, uangDit
     let subtotal = 0;
     
     const masterBarang = SheetService.readSheet("Barang");
+    const bsListAll = SheetService.readSheet("Barang_Supplier");
     const stockUpdates = [];
     
     for (let i = 0; i < cartItems.length; i++) {
@@ -122,7 +134,11 @@ function simpanTransaksi(cartItems, tipeHarga, metodeBayar, detailBayar, uangDit
       
       if (!barang) throw new Error(`Barang ${item.id_barang} tidak valid.`);
       
-      const stokSaatIni = Number(barang.stok_saat_ini) || 0;
+      // Validasi stok dari Barang_Supplier (is_utama=true)
+      const utama = bsListAll.find(bs => bs.id_barang === item.id_barang &&
+        (bs.is_utama == true || bs.is_utama === "TRUE") && bs.status === "Aktif");
+      
+      const stokSaatIni = utama ? (Number(utama.stok_saat_ini) || 0) : 0;
       if (finalStatus === "Selesai" && stokSaatIni < item.qty) {
         throw new Error(`Stok ${barang.nama_barang} tidak mencukupi! (Sisa: ${stokSaatIni})`);
       }
@@ -133,6 +149,7 @@ function simpanTransaksi(cartItems, tipeHarga, metodeBayar, detailBayar, uangDit
       if (finalStatus === "Selesai") {
         stockUpdates.push({
           id: item.id_barang,
+          id_bs_utama: utama ? utama.id_barang_supplier : null,
           stokBaru: stokSaatIni - item.qty
         });
       }
@@ -193,7 +210,10 @@ function simpanTransaksi(cartItems, tipeHarga, metodeBayar, detailBayar, uangDit
           user: username
         });
         
-        SheetService.updateRow("Barang", item.id_barang, { stok_saat_ini: stockUpdates[i].stokBaru });
+        // Deduct stok dari Barang_Supplier (is_utama=true)
+        if (stockUpdates[i].id_bs_utama) {
+          SheetService.updateRow("Barang_Supplier", stockUpdates[i].id_bs_utama, { stok_saat_ini: stockUpdates[i].stokBaru });
+        }
       }
     }
     
@@ -251,6 +271,7 @@ function _voidTransaksiInternal(noInvoice, requireAdminCheck) {
       
       const details = SheetService.findRows("Penjualan_Detail", "no_invoice", noInvoice);
       const masterBarang = SheetService.readSheet("Barang");
+      const bsListAll = SheetService.readSheet("Barang_Supplier");
       
       const tanggal = new Date().toISOString();
       const idMovementBase = new Date().getTime();
@@ -259,8 +280,14 @@ function _voidTransaksiInternal(noInvoice, requireAdminCheck) {
       details.forEach((item, index) => {
         const barang = masterBarang.find(b => b.id_barang === item.id_barang);
         if (barang) {
-          const stokBaru = (Number(barang.stok_saat_ini) || 0) + Number(item.qty);
-          SheetService.updateRow("Barang", barang.id_barang, { stok_saat_ini: stokBaru });
+          // Restore stok ke Barang_Supplier (is_utama=true)
+          const utama = bsListAll.find(bs => bs.id_barang === item.id_barang &&
+            (bs.is_utama == true || bs.is_utama === "TRUE") && bs.status === "Aktif");
+          
+          if (utama) {
+            const stokBaru = (Number(utama.stok_saat_ini) || 0) + Number(item.qty);
+            SheetService.updateRow("Barang_Supplier", utama.id_barang_supplier, { stok_saat_ini: stokBaru });
+          }
           
           SheetService.appendRow("Stock_Movement", {
             id_movement: `MV-${idMovementBase}-${index}`,
