@@ -1,66 +1,136 @@
 <style>
+    /* Premium Bento Grid Variables */
+    :root {
+        --bento-gap: 24px;
+        --card-radius: 20px;
+    }
+
+    .bento-layout {
+        display: flex;
+        flex-direction: column;
+        gap: var(--bento-gap);
+        margin-bottom: 40px;
+    }
+
+    .bento-row-split {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: var(--bento-gap);
+    }
+
+    .bento-row-chart {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: var(--bento-gap);
+    }
+
+    @media (max-width: 1024px) {
+        .bento-row-split, .bento-row-chart {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 768px) {
+        :root {
+            --bento-gap: 16px;
+            --card-radius: 16px;
+        }
+        .dash-card {
+            padding: 16px;
+        }
+        .dash-value {
+            font-size: 24px !important;
+        }
+        .bento-panel {
+            padding: 16px;
+        }
+        .dash-icon-box {
+            width: 40px;
+            height: 40px;
+            font-size: 20px;
+        }
+    }
+
     .dash-card {
-        border-radius: 16px;
+        border-radius: var(--card-radius);
         padding: 24px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
-        transition: all 0.3s ease;
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        box-shadow: 0 8px 32px rgba(31, 38, 135, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
         position: relative;
         overflow: hidden;
-        border: 1px solid rgba(255, 255, 255, 0.4);
-        background: var(--surface-color);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        height: 100%;
     }
 
     .dash-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
-    }
-
-    .dash-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: inherit;
-        z-index: 0;
-        opacity: 0.5;
-    }
-
-    .dash-card>div {
-        position: relative;
-        z-index: 1;
+        transform: translateY(-4px);
+        box-shadow: 0 12px 40px rgba(31, 38, 135, 0.08);
+        border-color: rgba(255, 255, 255, 0.9);
     }
 
     .dash-icon-box {
-        width: 56px;
-        height: 56px;
-        border-radius: 16px;
+        width: 52px;
+        height: 52px;
+        border-radius: 14px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 28px;
-        box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.5);
+        font-size: 26px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
     }
 
     .dash-title {
-        font-size: 14px;
-        font-weight: 600;
+        font-size: 13px;
+        font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 8px;
+        letter-spacing: 0.8px;
+        margin-bottom: 6px;
+        opacity: 0.8;
     }
 
     .dash-value {
-        font-size: 32px;
+        font-size: clamp(24px, 4vw, 34px);
         font-weight: 800;
         line-height: 1.2;
+        letter-spacing: -0.5px;
+        word-break: break-word;
     }
 
-    .dash-table-card {
-        border-radius: 16px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
-        border: 1px solid rgba(0, 0, 0, 0.05);
+    .bento-panel {
+        background: #ffffff;
+        border-radius: var(--card-radius);
+        padding: 24px;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.02);
+        border: 1px solid rgba(0, 0, 0, 0.04);
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        min-width: 0;
+    }
+
+    .bento-panel-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .bento-panel-title {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text-dark);
+        display: flex;
+        align-items: center;
+        gap: 10px;
     }
 </style>
 
@@ -72,74 +142,117 @@
         </div>
     </div>
 
-    <!-- Statistik Cards -->
-    <div class="grid"
-        style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; margin-bottom: 32px;">
-        <div class="dash-card"
-            style="background: linear-gradient(135deg, #ffffff 0%, #f4f8ff 100%); border-left: 5px solid var(--primary-color);">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <div class="dash-title" style="color: var(--primary-color);">Total Stock Barang</div>
-                    <div id="dashTotalStock" class="dash-value" style="color: #2c3e50;">...</div>
+    <div class="bento-layout">
+        <!-- ROW 1: Key Metrics (3 Cards) -->
+        <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--bento-gap);">
+            
+            <div class="dash-card" style="background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <div class="dash-title" style="color: #556270;">Total Stok Barang</div>
+                        <div id="dashTotalStock" class="dash-value" style="color: #2c3e50;">...</div>
+                    </div>
+                    <div class="dash-icon-box" style="background: #ffffff; color: #556270;">
+                        <i class='bx bx-box'></i>
+                    </div>
                 </div>
-                <div class="dash-icon-box" style="background: rgba(74, 144, 226, 0.15); color: var(--primary-color);">
-                    <i class='bx bx-box'></i>
+            </div>
+
+            <div class="dash-card" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <div class="dash-title" style="color: var(--success-color);">Penjualan Hari Ini</div>
+                        <div id="dashTotalSales" class="dash-value" style="color: #166534;">...</div>
+                    </div>
+                    <div class="dash-icon-box" style="background: #ffffff; color: var(--success-color);">
+                        <i class='bx bx-cart'></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dash-card" style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <div class="dash-title" style="color: var(--primary-color);">Pendapatan Hari Ini</div>
+                        <div id="dashTotalRevenue" class="dash-value" style="color: #1e3a8a;">...</div>
+                    </div>
+                    <div class="dash-icon-box" style="background: #ffffff; color: var(--primary-color);">
+                        <i class='bx bx-wallet-alt'></i>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="dash-card"
-            style="background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%); border-left: 5px solid var(--success-color);">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <div class="dash-title" style="color: var(--success-color);">Penjualan Hari Ini</div>
-                    <div id="dashTotalSales" class="dash-value" style="color: #2c3e50;">...</div>
+        <!-- ROW 2: Split (Rincian Pendapatan 60% | Potongan 40%) -->
+        <div class="bento-row-split">
+            <!-- Left: Rincian Pendapatan -->
+            <div class="bento-panel">
+                <div class="bento-panel-header">
+                    <h3 class="bento-panel-title">
+                        <i class='bx bx-pie-chart-alt-2' style="color: var(--primary-color);"></i>
+                        Rincian Pendapatan Hari Ini
+                    </h3>
                 </div>
-                <div class="dash-icon-box" style="background: rgba(46, 204, 113, 0.15); color: var(--success-color);">
-                    <i class='bx bx-cart'></i>
+                <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 16px; flex: 1;">
+                    <div class="dash-card" style="background: #f8fafc; border: none; box-shadow: none; padding: 20px;">
+                        <div class="dash-title" style="color: #64748b; font-size: 11px;">Tunai (Cash)</div>
+                        <div id="dashCashHariIni" class="dash-value" style="color: #0f172a; font-size: 22px;">...</div>
+                    </div>
+                    <div class="dash-card" style="background: #f8fafc; border: none; box-shadow: none; padding: 20px;">
+                        <div class="dash-title" style="color: #64748b; font-size: 11px;">Transfer Bank</div>
+                        <div id="dashTransferHariIni" class="dash-value" style="color: #0f172a; font-size: 22px;">...</div>
+                    </div>
+                    <div class="dash-card" style="background: #f8fafc; border: none; box-shadow: none; padding: 20px;">
+                        <div class="dash-title" style="color: #64748b; font-size: 11px;">QRIS / E-Wallet</div>
+                        <div id="dashQRISHariIni" class="dash-value" style="color: #0f172a; font-size: 22px;">...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Potongan Penjualan -->
+            <div class="bento-panel" style="background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%); border-color: #fecdd3;">
+                <div class="bento-panel-header">
+                    <h3 class="bento-panel-title" style="color: #e11d48;">
+                        <i class='bx bx-cut'></i> Potongan Kasir
+                    </h3>
+                    <select id="filterPotongan" class="input-control" style="width: auto; padding: 6px 12px; font-size: 13px; background: rgba(255,255,255,0.7); border: none; font-weight: 600; color: #be123c;" onchange="updatePotonganView()">
+                        <option value="harian">Harian</option>
+                        <option value="mingguan">Mingguan</option>
+                        <option value="bulanan" selected>Bulanan</option>
+                        <option value="tahunan">Tahunan</option>
+                    </select>
+                </div>
+                <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
+                    <div id="dashPotonganTitle" class="dash-title" style="color: #f43f5e;">Potongan Bulan Ini</div>
+                    <div id="dashPotonganValue" class="dash-value" style="color: #881337;">...</div>
                 </div>
             </div>
         </div>
 
-        <div class="dash-card"
-            style="background: linear-gradient(135deg, #ffffff 0%, #fffbf0 100%); border-left: 5px solid var(--warning-color);">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <div class="dash-title" style="color: var(--warning-color);">Pendapatan Hari Ini</div>
-                    <div id="dashTotalRevenue" class="dash-value" style="color: #2c3e50;">...</div>
+        <!-- ROW 3: Split (Grafik 65% | Low Stock 35%) -->
+        <div class="bento-row-chart">
+            <!-- Left: Chart -->
+            <div class="bento-panel">
+                <div class="bento-panel-header">
+                    <h3 class="bento-panel-title">
+                        <i class='bx bx-line-chart' style="color: var(--primary-color);"></i> Grafik Penjualan (7 Hari)
+                    </h3>
                 </div>
-                <div class="dash-icon-box" style="background: rgba(243, 156, 18, 0.15); color: var(--warning-color);">
-                    <i class='bx bx-money'></i>
+                <div style="min-height: 250px; height: 300px; width: 100%; position: relative;">
+                    <canvas id="salesGrowthChart"></canvas>
                 </div>
             </div>
-        </div>
-    </div>
 
-    <!-- Grafik Penjualan -->
-    <div class="card dash-table-card" style="margin-bottom: 32px; padding: 24px; background: #ffffff;">
-        <h3 style="margin-top: 0; margin-bottom: 20px; font-size: 18px; color: var(--text-dark); display: flex; align-items: center; gap: 10px;">
-            <i class='bx bx-line-chart' style="color: var(--primary-color);"></i> Grafik Growth Penjualan (7 Hari Terakhir)
-        </h3>
-        <div style="height: 300px; width: 100%;">
-            <canvas id="salesGrowthChart"></canvas>
-        </div>
-    </div>
-
-    <!-- Peringatan Stok -->
-    <div class="card dash-table-card">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h3
-                style="display: flex; align-items: center; gap: 10px; color: var(--danger-color); font-size: 18px; margin: 0;">
-                <div
-                    style="width: 36px; height: 36px; border-radius: 50%; background: rgba(231, 76, 60, 0.1); display: flex; align-items: center; justify-content: center;">
-                    <i class='bx bx-error-circle' style="font-size: 22px;"></i>
+            <!-- Right: Low Stock -->
+            <div class="bento-panel">
+                <div class="bento-panel-header">
+                    <h3 class="bento-panel-title" style="color: var(--danger-color);">
+                        <i class='bx bx-error-circle'></i> Stok Menipis
+                    </h3>
                 </div>
-                Notifikasi Stock Minimum
-            </h3>
-        </div>
-        <div class="table-container">
-            <table class="table">
-                <thead>
+                <div class="table-container" style="flex: 1; max-height: 300px; overflow-y: auto; overflow-x: auto; border: 1px solid var(--border-color); border-radius: 8px;">
+                    <table class="table" style="margin-bottom: 0;">
+                        <thead style="position: sticky; top: 0; background: #fff; z-index: 10; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
                     <tr>
                         <th>ID Barang</th>
                         <th>Nama Barang</th>
@@ -156,6 +269,8 @@
             </table>
         </div>
     </div>
+</div>
+</div>
 </div>
 
 <script>
@@ -183,6 +298,14 @@
             document.getElementById('dashTotalStock').textContent = stats.totalStockBarang.toLocaleString('id-ID');
             document.getElementById('dashTotalSales').textContent = stats.totalPenjualanHariIni.toLocaleString('id-ID') + " Trx";
             document.getElementById('dashTotalRevenue').textContent = "Rp " + stats.totalPendapatanHariIni.toLocaleString('id-ID');
+            
+            document.getElementById('dashCashHariIni').textContent = "Rp " + (stats.pendapatanCashHariIni || 0).toLocaleString('id-ID');
+            document.getElementById('dashTransferHariIni').textContent = "Rp " + (stats.pendapatanTransferHariIni || 0).toLocaleString('id-ID');
+            document.getElementById('dashQRISHariIni').textContent = "Rp " + (stats.pendapatanQRISHariIni || 0).toLocaleString('id-ID');
+            
+            // Simpan stats untuk dipakai filter potongan
+            window.currentDashboardStats = stats;
+            updatePotonganView();
 
             const tbody = document.getElementById('dashLowStockTableBody');
             if (stats.notifikasiStockMinimum.length === 0) {
@@ -289,4 +412,26 @@
         const view = document.getElementById('view-dashboard');
         if (view) observer.observe(view, { attributes: true, attributeFilter: ['class'] });
     });
+
+    function updatePotonganView() {
+        if (!window.currentDashboardStats) return;
+        const val = document.getElementById('filterPotongan').value;
+        const valueEl = document.getElementById('dashPotonganValue');
+        const titleEl = document.getElementById('dashPotonganTitle');
+        const stats = window.currentDashboardStats;
+        
+        if (val === 'harian') {
+            titleEl.textContent = 'Potongan Hari Ini';
+            valueEl.textContent = "Rp " + (stats.totalPotonganHariIni || 0).toLocaleString('id-ID');
+        } else if (val === 'mingguan') {
+            titleEl.textContent = 'Potongan Minggu Ini';
+            valueEl.textContent = "Rp " + (stats.totalPotonganMingguIni || 0).toLocaleString('id-ID');
+        } else if (val === 'bulanan') {
+            titleEl.textContent = 'Potongan Bulan Ini';
+            valueEl.textContent = "Rp " + (stats.totalPotonganBulanIni || 0).toLocaleString('id-ID');
+        } else if (val === 'tahunan') {
+            titleEl.textContent = 'Potongan Tahun Ini';
+            valueEl.textContent = "Rp " + (stats.totalPotonganTahunIni || 0).toLocaleString('id-ID');
+        }
+    }
 </script>

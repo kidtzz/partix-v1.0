@@ -109,7 +109,7 @@ function hitungTotalTransaksi(cartItems, tipeHarga) {
   }, 0);
 }
 
-function simpanTransaksi(cartItems, tipeHarga, metodeBayar, detailBayar, uangDiterima, status, existingInvoiceNo) {
+function simpanTransaksi(cartItems, tipeHarga, metodeBayar, detailBayar, uangDiterima, status, existingInvoiceNo, potonganPenjualan) {
   const userRole = requireRole(['Admin', 'Kasir']);
   const username = typeof userRole === 'string' ? userRole : (Session.getActiveUser().getEmail() || "kasir");
   const lock = LockService.getScriptLock();
@@ -166,11 +166,12 @@ function simpanTransaksi(cartItems, tipeHarga, metodeBayar, detailBayar, uangDit
       }
     }
     
-    const total = subtotal;
+    const potongan = Number(potonganPenjualan) || 0;
+    const total = Math.max(0, subtotal - potongan);
     let kembalian = 0;
     if (finalStatus === "Selesai" && metodeBayar === "Cash") {
       kembalian = uangDiterima - total;
-      if (kembalian < 0) throw new Error("Uang yang diterima kurang dari total belanja!");
+      if (kembalian < 0) throw new Error("Uang yang diterima kurang dari total tagihan!");
     }
     
     const noInvoice = generateNomorInvoice();
@@ -181,6 +182,7 @@ function simpanTransaksi(cartItems, tipeHarga, metodeBayar, detailBayar, uangDit
       kasir: username,
       kategori_customer: tipeHarga,
       subtotal: subtotal,
+      potongan_penjualan: potongan,
       total: total,
       metode_pembayaran: metodeBayar || "",
       detail_pembayaran: JSON.stringify(detailBayar || {}),

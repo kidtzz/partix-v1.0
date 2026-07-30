@@ -319,7 +319,7 @@
 
 <!-- Modal Detail Transaksi -->
 <div class="modal-overlay" id="modalDetailTransaksi">
-    <div class="modal-content" style="max-width: 600px;">
+    <div class="modal-content">
         <div class="modal-header">
             <h3>Detail Transaksi</h3>
             <button class="modal-close" onclick="closeDetailTransaksi()"><i class='bx bx-x'></i></button>
@@ -385,25 +385,25 @@
 
 <!-- Modal Tambah/Edit Barang -->
 <div class="modal-overlay" id="modalAdminBarang">
-    <div class="modal-content" style="max-width: 600px;">
+    <div class="modal-content">
         <div class="modal-header">
             <h3 id="modalAdminBarangTitle">Tambah Barang Baru</h3>
             <button class="modal-close" onclick="tutupModalBarang()"><i class='bx bx-x'></i></button>
         </div>
         <div class="modal-body">
             <input type="hidden" id="formBarangId">
-            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 16px;">
-                <div class="input-group">
+            <div class="grid" style="grid-template-columns: 1fr; gap: 16px;">
+                <div class="input-group" style="margin-bottom: 0;">
                     <label>Nama Barang *</label>
                     <input type="text" class="input-control" id="formBarangNama" required>
                 </div>
-                <div class="input-group">
+                <div class="input-group" style="margin-bottom: 0;">
                     <label>Barcode 1</label>
-                    <input type="text" class="input-control" id="formBarangBarcode1">
+                    <input type="text" class="input-control" id="formBarangBarcode1" pattern="[0-9]*" inputmode="numeric" placeholder="Hanya Angka">
                 </div>
-                <div class="input-group">
+                <div class="input-group" style="margin-bottom: 0;">
                     <label>Barcode 2</label>
-                    <input type="text" class="input-control" id="formBarangBarcode2">
+                    <input type="text" class="input-control" id="formBarangBarcode2" pattern="[0-9]*" inputmode="numeric" placeholder="Hanya Angka">
                 </div>
 
             </div>
@@ -419,7 +419,7 @@
 
 <!-- Modal Atur Supplier Barang -->
 <div class="modal-overlay" id="modalBarangSupplier">
-    <div class="modal-content" style="max-width: 600px;">
+    <div class="modal-content">
         <div class="modal-header">
             <h3>Atur Supplier & Harga Beli</h3>
             <button class="modal-close" onclick="tutupModalBarangSupplier()"><i class='bx bx-x'></i></button>
@@ -501,7 +501,7 @@
 
 <!-- Modal Tambah/Edit Supplier -->
 <div class="modal-overlay" id="modalAdminSupplier">
-    <div class="modal-content" style="max-width: 550px;">
+    <div class="modal-content">
         <div class="modal-header">
             <h3 id="modalAdminSupplierTitle">Tambah Supplier Baru</h3>
             <button class="modal-close" onclick="tutupModalSupplier()"><i class='bx bx-x'></i></button>
@@ -545,7 +545,7 @@
 
 <!-- Modal Tambah/Edit User -->
 <div class="modal-overlay" id="modalAdminUser">
-    <div class="modal-content" style="max-width: 500px;">
+    <div class="modal-content">
         <div class="modal-header">
             <h3 id="modalAdminUserTitle">Tambah User Baru</h3>
             <button class="modal-close"
@@ -1150,11 +1150,15 @@
         if (!container) return;
         const rowDiv = document.createElement('div');
         rowDiv.className = 'pic-row grid';
-        rowDiv.style.cssText = 'grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: center;';
+        rowDiv.style.cssText = 'grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: start; margin-bottom: 12px; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px;';
         rowDiv.innerHTML = `
-            <input type="text" class="input-control form-pic-nama" placeholder="Nama PIC" value="${nama}">
-            <input type="text" class="input-control form-pic-hp" placeholder="No. HP / WhatsApp" value="${hp}">
-            <button type="button" class="btn btn-sm" style="background: var(--danger-color); color: white; padding: 6px 10px;" onclick="hapusBarisPicForm(this)" title="Hapus PIC">
+            <div class="input-group" style="margin-bottom: 0;">
+                <input type="text" class="input-control form-pic-nama" placeholder="Nama PIC" value="${nama}">
+            </div>
+            <div class="input-group" style="margin-bottom: 0;">
+                <input type="tel" class="input-control form-pic-hp" placeholder="No. HP / WhatsApp (Angka)" value="${hp}" pattern="[0-9]*" inputmode="numeric">
+            </div>
+            <button type="button" class="btn btn-sm" style="background: var(--danger-color); color: white; padding: 0 14px; height: 42px;" onclick="hapusBarisPicForm(this)" title="Hapus PIC">
                 <i class='bx bx-trash'></i>
             </button>
         `;

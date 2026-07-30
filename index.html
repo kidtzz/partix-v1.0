@@ -24,7 +24,7 @@
                 <span>PARTIX</span>
             </div>
             <div class="login-subtitle">Masuk ke sistem POS & Inventory</div>
-            
+
             <form id="loginForm" onsubmit="handleLogin(event); return false;">
                 <div class="input-group" style="text-align: left;">
                     <label>Email / Username</label>
@@ -66,15 +66,19 @@
                     <i class='bx bx-cart-alt'></i>
                     <span>Penjualan</span>
                 </li>
-                <li class="nav-item" data-target="return">
-                    <i class='bx bx-revision'></i>
-                    <span>Return</span>
-                </li>
                 <li class="nav-item" data-target="histori-transaksi">
                     <i class='bx bx-history'></i>
                     <span>Histori Transaksi</span>
                 </li>
-                
+                <li class="nav-item" data-target="return">
+                    <i class='bx bx-revision'></i>
+                    <span>Return</span>
+                </li>
+                <li class="nav-item" data-target="return-supplier">
+                    <i class='bx bx-archive-out'></i>
+                    <span>Barang Return</span>
+                </li>
+
                 <li class="nav-header">Inventory</li>
                 <li class="nav-item" data-target="stock">
                     <i class='bx bx-package'></i>
@@ -88,7 +92,7 @@
                     <i class='bx bx-buildings'></i>
                     <span>Master Supplier</span>
                 </li>
-                
+
                 <li class="nav-header">Admin</li>
                 <li class="nav-item" data-target="admin-harga">
                     <i class='bx bx-purchase-tag'></i>
@@ -112,7 +116,8 @@
                     <span class="user-name" id="displayUserName">Memuat...</span>
                     <span class="user-role" id="displayUserRole">Role</span>
                 </div>
-                <button class="btn-icon" title="Logout" onclick="handleLogout()" style="margin-left: auto; color: var(--danger-color);">
+                <button class="btn-icon" title="Logout" onclick="handleLogout()"
+                    style="margin-left: auto; color: var(--danger-color);">
                     <i class='bx bx-log-out'></i>
                 </button>
             </div>
@@ -138,7 +143,7 @@
                 <!-- Partials will be injected here. In SPA, we hide/show these containers. -->
 
                 <?!= include('partial_dashboard'); ?>
-                
+
                 <section id="view-penjualan" class="view-section active">
                     <?!= include('partial_penjualan'); ?>
                 </section>
@@ -146,9 +151,8 @@
                 <!-- partial_stock includes its own section wrapper -->
                 <?!= include('partial_stock'); ?>
 
-                <section id="view-return" class="view-section">
-                    <?!= include('partial_return'); ?>
-                </section>
+                <!-- partial_return includes multiple section tags -->
+                <?!= include('partial_return'); ?>
 
                 <!-- partial_admin includes multiple section tags -->
                 <?!= include('partial_admin'); ?>

@@ -10,6 +10,13 @@ function getDashboardStats() {
     totalStockBarang: 0,
     totalPenjualanHariIni: 0,
     totalPendapatanHariIni: 0,
+    pendapatanCashHariIni: 0,
+    pendapatanTransferHariIni: 0,
+    pendapatanQRISHariIni: 0,
+    totalPotonganHariIni: 0,
+    totalPotonganMingguIni: 0,
+    totalPotonganBulanIni: 0,
+    totalPotonganTahunIni: 0,
     dailySales: {},
     notifikasiStockMinimum: []
   };
@@ -55,17 +62,39 @@ function getDashboardStats() {
     const today = new Date();
     // Gunakan zona waktu WIB (Asia/Jakarta) sebagai acuan hari
     const todayStr = today.toLocaleString('en-CA', { timeZone: 'Asia/Jakarta' }).split(',')[0].trim(); // YYYY-MM-DD
+    // Date filters for Potongan
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay());
+    startOfWeek.setHours(0,0,0,0);
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const startOfYear = new Date(today.getFullYear(), 0, 1);
     
     txList.forEach(tx => {
       // Ambil tanggal transaksi (misal: "2026-07-27T10:00:00.000Z")
       if (tx.tanggal && tx.status_transaksi === "Selesai") {
         const txDateObj = new Date(tx.tanggal);
         const txDateStr = txDateObj.toLocaleString('en-CA', { timeZone: 'Asia/Jakarta' }).split(',')[0].trim();
+        const potongan = Number(tx.potongan_penjualan) || 0;
         
         if (txDateStr === todayStr) {
+          const tTotal = Number(tx.total) || 0;
           stats.totalPenjualanHariIni++;
-          stats.totalPendapatanHariIni += (Number(tx.total) || 0);
+          stats.totalPendapatanHariIni += tTotal;
+          stats.totalPotonganHariIni += potongan;
+          
+          const metode = (tx.metode_pembayaran || "").toLowerCase();
+          if (metode === "cash") {
+              stats.pendapatanCashHariIni += tTotal;
+          } else if (metode === "transfer") {
+              stats.pendapatanTransferHariIni += tTotal;
+          } else if (metode === "qris") {
+              stats.pendapatanQRISHariIni += tTotal;
+          }
         }
+        
+        if (txDateObj >= startOfWeek) stats.totalPotonganMingguIni += potongan;
+        if (txDateObj >= startOfMonth) stats.totalPotonganBulanIni += potongan;
+        if (txDateObj >= startOfYear) stats.totalPotonganTahunIni += potongan;
         
         if (!stats.dailySales[txDateStr]) {
             stats.dailySales[txDateStr] = 0;

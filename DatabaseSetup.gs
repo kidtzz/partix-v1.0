@@ -19,10 +19,11 @@ const DB_SCHEMA = {
   "Barang_Supplier": ["id_barang_supplier", "id_barang", "id_supplier", "harga_beli", "diskon_persen", "satuan", "isi_per_box", "stok_saat_ini", "minimum_stok", "lokasi_rak", "kode_barang_supplier", "is_utama", "status"],
   "Harga": ["id_harga", "id_barang", "harga_regular", "harga_langganan", "harga_teman", "tanggal_berlaku", "status_harga", "keterangan_perubahan"],
   "Stock_Movement": ["id_movement", "tanggal", "id_barang", "id_supplier", "tipe_pergerakan", "qty_box", "qty_pcs", "harga_beli", "nomor_invoice_supplier", "batch_barang", "alasan_perubahan", "user"],
-  "Penjualan": ["no_invoice", "tanggal", "kasir", "kategori_customer", "subtotal", "total", "metode_pembayaran", "detail_pembayaran", "kembalian", "status_transaksi"],
+  "Penjualan": ["no_invoice", "tanggal", "kasir", "kategori_customer", "subtotal", "potongan_penjualan", "total", "metode_pembayaran", "detail_pembayaran", "kembalian", "status_transaksi"],
   "Penjualan_Detail": ["id_detail", "no_invoice", "id_barang", "nama_barang", "qty", "harga_satuan", "subtotal"],
   "Return": ["no_return", "no_invoice", "tanggal", "kasir", "jenis_return", "selisih_harga", "alasan_return", "status"],
   "Return_Detail": ["id_detail", "no_return", "id_barang_direturn", "qty_direturn", "id_barang_pengganti", "qty_pengganti"],
+  "Barang_Return": ["id_barang_return", "tanggal_terima", "no_invoice_asal", "id_barang", "qty_rusak", "alasan", "user_penerima"],
   "Users": ["username", "password", "nama_lengkap", "role", "status"],
   "Profil_Toko": ["id_profil", "nama_toko", "logo_toko", "alamat_toko", "nomor_telepon", "footer_invoice"],
   "Pengaturan": ["kunci", "nilai"]

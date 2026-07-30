@@ -79,13 +79,15 @@ function prosesReturn(noInvoice, itemsReturn, jenisPenyelesaian, selisihBayar) {
         qty_pengganti: item.qty_pengganti || 0
       });
       
+      const isCacat = (item.alasan_return === "Cacat Pabrik" || item.alasan_return === "Rusak");
+      
       // Stock Movement (Barang kembali ke toko -> RETURN_IN)
       SheetService.appendRow("Stock_Movement", {
         id_movement: `MV-${idMovementBase}-R${i}`,
         tanggal: tanggal,
         id_barang: item.id_barang_direturn,
         id_supplier: "",
-        tipe: "RETURN_IN",
+        tipe: isCacat ? "RETURN_IN_DEFECT" : "RETURN_IN",
         qty_box: 0,
         qty_pcs: item.qty_return,
         harga_beli: 0,
@@ -94,14 +96,33 @@ function prosesReturn(noInvoice, itemsReturn, jenisPenyelesaian, selisihBayar) {
         user: user.email
       });
       
-      // Update master stok (Kembalikan stok yang diretur)
-      // *Catatan: Jika barang rusak, biasanya dibuat alur manual untuk "Write-off" atau Adjustment (OUT).
-      // Di sini kita kembalikan ke stok.
-      const masterLama = SheetService.findRow("Barang", "id_barang", item.id_barang_direturn);
-      if (masterLama) {
-        SheetService.updateRow("Barang", item.id_barang_direturn, { 
-          stok_saat_ini: Number(masterLama.stok_saat_ini) + item.qty_return 
+      if (isCacat) {
+        // Masukkan ke penampungan barang rusak, tidak menambah stok jual
+        SheetService.appendRow("Barang_Return", {
+          id_barang_return: `BR-${idMovementBase}-${i}`,
+          tanggal_terima: tanggal,
+          no_invoice_asal: noInvoice,
+          id_barang: item.id_barang_direturn,
+          qty_rusak: item.qty_return,
+          alasan: item.alasan_return,
+          user_penerima: user.email
         });
+      } else {
+        // Update master stok (Kembalikan stok yang diretur karena masih bagus)
+        const bsUtama = SheetService.readSheet("Barang_Supplier").find(bs => bs.id_barang === item.id_barang_direturn && (bs.is_utama == true || bs.is_utama === "TRUE") && bs.status === "Aktif");
+        if (bsUtama) {
+          SheetService.updateRow("Barang_Supplier", bsUtama.id_barang_supplier, {
+            stok_saat_ini: (Number(bsUtama.stok_saat_ini) || 0) + item.qty_return
+          });
+        } else {
+          // Fallback legacy
+          const masterLama = SheetService.findRow("Barang", "id_barang", item.id_barang_direturn);
+          if (masterLama && masterLama.stok_saat_ini !== undefined) {
+            SheetService.updateRow("Barang", item.id_barang_direturn, { 
+              stok_saat_ini: Number(masterLama.stok_saat_ini) + item.qty_return 
+            });
+          }
+        }
       }
       
       // Jika ini adalah proses TUKAR BARANG (ada barang pengganti)
@@ -155,4 +176,22 @@ function cetakInvoiceReturn(noReturn) {
     header: transaksi,
     detail: detail
   };
+}
+
+/**
+ * Mengambil daftar barang yang ada di sheet Barang_Return
+ */
+function getListBarangReturn() {
+  requireRole(['Admin', 'Restocker', 'Kasir']);
+  
+  const listReturn = SheetService.readSheet("Barang_Return");
+  const barangMaster = SheetService.readSheet("Barang");
+  
+  return listReturn.map(r => {
+    const brg = barangMaster.find(b => b.id_barang === r.id_barang);
+    return {
+      ...r,
+      nama_barang: brg ? brg.nama_barang : r.id_barang
+    };
+  });
 }

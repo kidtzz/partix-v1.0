@@ -82,6 +82,11 @@
             </div>
 
             <div class="input-group mt-3">
+                <label>Potongan Manual (Diskon Kasir)</label>
+                <input type="number" class="input-control" id="potonganPenjualan" placeholder="Cth: 5000" min="0" oninput="updateCartUI()">
+            </div>
+
+            <div class="input-group mt-3">
                 <label>Metode Bayar</label>
                 <select class="input-control" id="metodeBayar" onchange="toggleCashInput()">
                     <option value="Cash">Cash (Tunai)</option>
@@ -95,8 +100,16 @@
                 <input type="number" class="input-control" id="uangDiterima" placeholder="Cth: 100000">
             </div>
 
-            <div class="summary-row total">
-                <span>Total</span>
+            <div class="summary-row" style="color: var(--text-muted); font-size: 14px; margin-bottom: 4px; display: flex; justify-content: space-between;">
+                <span>Subtotal</span>
+                <span id="cartSubtotal">Rp 0</span>
+            </div>
+            <div class="summary-row" style="color: var(--danger-color); font-size: 14px; margin-bottom: 8px; display: flex; justify-content: space-between;">
+                <span>Potongan</span>
+                <span id="cartPotongan">- Rp 0</span>
+            </div>
+            <div class="summary-row total" style="display: flex; justify-content: space-between; border-top: 1px dashed var(--border-color); padding-top: 8px;">
+                <span>Total Tagihan</span>
                 <span id="cartTotal">Rp 0</span>
             </div>
 
@@ -492,12 +505,19 @@
             }
         }
 
+        function updateCartUI() {
+            updateCartTotal();
+        }
+
         function updateCartTotal() {
             const tipeHarga = document.getElementById('tipeHarga').value;
             const subtotal = posCart.reduce((sum, item) => sum + ((item.harga[tipeHarga] || 0) * item.qty), 0);
+            const potongan = Number(document.getElementById('potonganPenjualan')?.value) || 0;
+            const total = Math.max(0, subtotal - potongan);
 
             document.getElementById('cartSubtotal').textContent = formatRupiah(subtotal);
-            document.getElementById('cartTotal').textContent = formatRupiah(subtotal);
+            document.getElementById('cartPotongan').textContent = '- ' + formatRupiah(potongan);
+            document.getElementById('cartTotal').textContent = formatRupiah(total);
         }
 
         function changeTipeHarga() {
@@ -517,13 +537,15 @@
 
             const tipeHarga = document.getElementById('tipeHarga').value;
             const metodeBayar = document.getElementById('metodeBayar').value;
+            const potongan = Number(document.getElementById('potonganPenjualan')?.value) || 0;
             let uangDiterima = 0;
 
             if (metodeBayar === "Cash") {
                 uangDiterima = Number(document.getElementById('uangDiterima').value) || 0;
                 const subtotal = posCart.reduce((sum, item) => sum + ((item.harga[tipeHarga] || 0) * item.qty), 0);
-                if (uangDiterima < subtotal) {
-                    return showToast('Uang diterima kurang dari total belanja!', 'error');
+                const total = Math.max(0, subtotal - potongan);
+                if (uangDiterima < total) {
+                    return showToast('Uang diterima kurang dari total tagihan!', 'error');
                 }
             }
 
@@ -531,8 +553,8 @@
             btn.disabled = true;
             btn.innerHTML = `<i class='bx bx-loader-alt bx-spin'></i> Memproses...`;
 
-            // Parameter: cartItems, tipeHarga, metodeBayar, detailBayar, uangDiterima
-            BackendAPI.call('simpanTransaksi', [posCart, tipeHarga, metodeBayar, {}, uangDiterima])
+            // Parameter: cartItems, tipeHarga, metodeBayar, detailBayar, uangDiterima, status, existingInvoiceNo, potonganPenjualan
+            BackendAPI.call('simpanTransaksi', [posCart, tipeHarga, metodeBayar, {}, uangDiterima, "Selesai", "", potongan])
                 .then(res => {
                     showToast(`Transaksi Selesai! Kembalian: ${formatRupiah(res.kembalian)}`, 'success');
                     alert(`Transaksi Berhasil!\nNo Invoice: ${res.noInvoice}\nKembalian: ${formatRupiah(res.kembalian)}`);
@@ -540,6 +562,9 @@
                     posCart = [];
                     renderCart();
                     document.getElementById('uangDiterima').value = '';
+                    if(document.getElementById('potonganPenjualan')) {
+                        document.getElementById('potonganPenjualan').value = '';
+                    }
                     initPOS(); // Refresh stok barang terbaru dari server
                 })
                 .catch(err => {
