@@ -13,11 +13,12 @@ function getBarangUntukPOS() {
   const hargaAktif = hargaList.filter(h => h.status_harga === "Aktif");
   const bsList = SheetService.readSheet("Barang_Supplier").filter(bs => bs.status === "Aktif");
   
-  return barangList.filter(b => b.status_barang === "Aktif").map(b => {
-    // Stok diambil dari baris is_utama=true di Barang_Supplier
-    const utama = bsList.find(bs => bs.id_barang === b.id_barang &&
-      (bs.is_utama == true || bs.is_utama === "TRUE"));
-    const stok = utama ? (Number(utama.stok_saat_ini) || 0) : 0;
+  return barangList
+    .filter(b => b.status_barang === "Aktif" && bsList.some(bs => bs.id_barang === b.id_barang))
+    .map(b => {
+    // Stok diakumulasi dari semua supplier aktif
+    const allSuppliers = bsList.filter(bs => bs.id_barang === b.id_barang);
+    const stok = allSuppliers.reduce((sum, bs) => sum + (Number(bs.stok_saat_ini) || 0), 0);
 
     // Harga modal dari supplier tertinggi
     const supplierPrices = bsList.filter(bs => bs.id_barang === b.id_barang).map(bs => Number(bs.harga_beli));
@@ -69,11 +70,12 @@ function scanBarcodePenjualan(barcode) {
   if (!barang) throw new Error("Barang tidak ditemukan!");
   if (barang.status_barang !== "Aktif") throw new Error("Barang berstatus Nonaktif.");
   
-  // Stok dari Barang_Supplier (is_utama=true)
-  const bsList = SheetService.readSheet("Barang_Supplier").filter(bs => bs.status === "Aktif");
-  const utama = bsList.find(bs => bs.id_barang === barang.id_barang &&
-    (bs.is_utama == true || bs.is_utama === "TRUE"));
-  const stok = utama ? (Number(utama.stok_saat_ini) || 0) : 0;
+  // Stok diakumulasi dari semua relasi Barang_Supplier yang aktif
+  const bsList = SheetService.readSheet("Barang_Supplier").filter(bs => bs.status === "Aktif" && bs.id_barang === barang.id_barang);
+    
+  if (bsList.length === 0) throw new Error("Barang belum terdaftar di stok!");
+  
+  const stok = bsList.reduce((sum, bs) => sum + (Number(bs.stok_saat_ini) || 0), 0);
 
   const h = SheetService.readSheet("Harga").find(h => h.id_barang === barang.id_barang && h.status_harga === "Aktif");
   const diskon = getPengaturanDiskon();
@@ -134,11 +136,10 @@ function simpanTransaksi(cartItems, tipeHarga, metodeBayar, detailBayar, uangDit
       
       if (!barang) throw new Error(`Barang ${item.id_barang} tidak valid.`);
       
-      // Validasi stok dari Barang_Supplier (is_utama=true)
-      const utama = bsListAll.find(bs => bs.id_barang === item.id_barang &&
-        (bs.is_utama == true || bs.is_utama === "TRUE") && bs.status === "Aktif");
+      // Validasi total stok dari semua relasi aktif
+      const relasi = bsListAll.filter(bs => bs.id_barang === item.id_barang && bs.status === "Aktif");
+      const stokSaatIni = relasi.reduce((sum, bs) => sum + (Number(bs.stok_saat_ini) || 0), 0);
       
-      const stokSaatIni = utama ? (Number(utama.stok_saat_ini) || 0) : 0;
       if (finalStatus === "Selesai" && stokSaatIni < item.qty) {
         throw new Error(`Stok ${barang.nama_barang} tidak mencukupi! (Sisa: ${stokSaatIni})`);
       }
@@ -147,11 +148,21 @@ function simpanTransaksi(cartItems, tipeHarga, metodeBayar, detailBayar, uangDit
       subtotal += (hargaSatuan * item.qty);
       
       if (finalStatus === "Selesai") {
-        stockUpdates.push({
-          id: item.id_barang,
-          id_bs_utama: utama ? utama.id_barang_supplier : null,
-          stokBaru: stokSaatIni - item.qty
-        });
+        let sisaDeduct = item.qty;
+        for (let j = 0; j < relasi.length; j++) {
+           if (sisaDeduct <= 0) break;
+           const sbs = relasi[j];
+           let stokBs = Number(sbs.stok_saat_ini) || 0;
+           if (stokBs > 0) {
+             let potong = Math.min(stokBs, sisaDeduct);
+             stockUpdates.push({
+               id_barang_supplier: sbs.id_barang_supplier,
+               id_barang: item.id_barang,
+               stokBaru: stokBs - potong
+             });
+             sisaDeduct -= potong;
+           }
+        }
       }
     }
     
@@ -210,10 +221,11 @@ function simpanTransaksi(cartItems, tipeHarga, metodeBayar, detailBayar, uangDit
           user: username
         });
         
-        // Deduct stok dari Barang_Supplier (is_utama=true)
-        if (stockUpdates[i].id_bs_utama) {
-          SheetService.updateRow("Barang_Supplier", stockUpdates[i].id_bs_utama, { stok_saat_ini: stockUpdates[i].stokBaru });
-        }
+        // Deduct stok dari Barang_Supplier (secara berantai)
+        const updatesForItem = stockUpdates.filter(su => su.id_barang === item.id_barang);
+        updatesForItem.forEach(su => {
+          SheetService.updateRow("Barang_Supplier", su.id_barang_supplier, { stok_saat_ini: su.stokBaru });
+        });
       }
     }
     

@@ -139,14 +139,12 @@
 
                 <?!= include('partial_dashboard'); ?>
                 
-                <!-- Penjualan View -->
                 <section id="view-penjualan" class="view-section active">
                     <?!= include('partial_penjualan'); ?>
                 </section>
 
-                <section id="view-stock" class="view-section">
-                    <?!= include('partial_stock'); ?>
-                </section>
+                <!-- partial_stock includes its own section wrapper -->
+                <?!= include('partial_stock'); ?>
 
                 <section id="view-return" class="view-section">
                     <?!= include('partial_return'); ?>

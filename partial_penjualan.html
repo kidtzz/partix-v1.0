@@ -368,7 +368,7 @@
                 <div class="product-info">
                     <h4 class="product-name">${b.nama_barang}</h4>
                     <span class="product-price">${formatRupiah(b.harga[tipeHarga] || 0)}</span>
-                    <span class="product-stock">Stok: ${b.stok_saat_ini} | ${b.barcode}</span>
+                    <span class="product-stock">Stok: ${b.stok_saat_ini} PCS | ${b.barcode}</span>
                 </div>
             </div>
         `).join('');
@@ -468,7 +468,7 @@
                         <span class="cart-item-price">${formatRupiah(hargaSatuan * item.qty)}</span>
                         <div class="qty-controls">
                             <button class="qty-btn" onclick="updateQty('${item.id_barang}', -1)"><i class='bx bx-minus'></i></button>
-                            <span>${item.qty}</span>
+                            <span style="font-size: 13px; font-weight: 500; min-width: 40px; text-align: center;">${item.qty} PCS</span>
                             <button class="qty-btn" onclick="updateQty('${item.id_barang}', 1)"><i class='bx bx-plus'></i></button>
                         </div>
                     </div>

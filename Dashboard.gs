@@ -23,22 +23,29 @@ function getDashboardStats() {
       if(row.kunci === "MINIMUM_STOK") globalMinStok = Number(row.nilai) || 0;
     });
     
+    const bsList = SheetService.readSheet("Barang_Supplier");
+    
     // 1. Total Stock Barang & Notifikasi
     barangList.forEach(b => {
       if(b.status_barang === "Aktif") {
-        const stokSaatIni = Number(b.stok_saat_ini) || 0;
-        const minStok = globalMinStok;
+        const relasi = bsList.filter(bs => bs.id_barang === b.id_barang && bs.status === "Aktif");
         
-        stats.totalStockBarang += stokSaatIni;
-        
-        if (stokSaatIni <= minStok) {
-          stats.notifikasiStockMinimum.push({
-            id_barang: b.id_barang,
-            nama_barang: b.nama_barang,
-            stok_saat_ini: stokSaatIni,
-            minimum_stock: minStok,
-            satuan: b.satuan
-          });
+        if (relasi.length > 0) {
+          const stokSaatIni = relasi.reduce((sum, bs) => sum + (Number(bs.stok_saat_ini) || 0), 0);
+          const minStok = globalMinStok; // Force refer ke global
+          const satuan = "PCS";
+          
+          stats.totalStockBarang += stokSaatIni;
+          
+          if (stokSaatIni <= minStok) {
+            stats.notifikasiStockMinimum.push({
+              id_barang: b.id_barang,
+              nama_barang: b.nama_barang,
+              stok_saat_ini: stokSaatIni,
+              minimum_stock: minStok,
+              satuan: satuan
+            });
+          }
         }
       }
     });

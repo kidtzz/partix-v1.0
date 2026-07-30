@@ -9,6 +9,11 @@ function doGet(e) {
   // Custom login: Halaman akan terbuka tanpa initial user (user harus login dari UI)
   template.initialUser = "null";
   
+  // Temporary migration trigger
+  try {
+    fixSatuanPcsAll();
+  } catch(e) {}
+  
   return template.evaluate()
     .setTitle('PARTIX - POS & Inventory')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1')

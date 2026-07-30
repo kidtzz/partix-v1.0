@@ -47,8 +47,8 @@ function getStockList() {
       merk: b.merk || "",
       kategori: b.kategori || "",
       status_barang: b.status_barang,
-      // Data stok dari baris supplier utama
-      stok_saat_ini: utama ? (Number(utama.stok_saat_ini) || 0) : 0,
+      // Data stok diakumulasikan dari semua supplier aktif
+      stok_saat_ini: relasi.reduce((sum, bs) => sum + (Number(bs.stok_saat_ini) || 0), 0),
       minimum_stok: utama ? (Number(utama.minimum_stok) || 0) : 0,
       lokasi_rak: utama ? (utama.lokasi_rak || "") : "",
       satuan: utama ? (utama.satuan || "PCS") : "PCS",
@@ -105,7 +105,7 @@ function konversiBoxKePcs(idBarang, qtyBox) {
   return qtyBox * isiPerBox;
 }
 
-function inputBarangMasuk(idBarang, idSupplier, qtyBox, hargaBeli, tanggal, diskonPersen = 0, isiPerBox = 1, noInvoiceSupplier = "") {
+function inputBarangMasuk(idBarang, idSupplier, qtyBox, isiPerBox, hargaBeli, tanggal, diskonPersen = 0, noInvoiceSupplier = "") {
   const userRole = requireRole(['Admin', 'Restocker']);
   const username = typeof userRole === 'string' ? userRole : (Session.getActiveUser().getEmail() || "admin");
   
@@ -118,10 +118,10 @@ function inputBarangMasuk(idBarang, idSupplier, qtyBox, hargaBeli, tanggal, disk
   
   try {
     const bsList = SheetService.readSheet("Barang_Supplier");
-    let utama = bsList.find(bs => bs.id_barang === idBarang &&
-      (bs.is_utama == true || bs.is_utama === "TRUE") && bs.status === "Aktif");
+    let supplierRelation = bsList.find(bs => bs.id_barang === idBarang && bs.id_supplier === idSupplier && bs.status === "Aktif");
       
-    const finalIsiPerBox = utama ? (Number(utama.isi_per_box) || 1) : (Number(isiPerBox) || 1);
+    // Konversi total PCS = Box x isi_per_box
+    const finalIsiPerBox = supplierRelation ? (Number(supplierRelation.isi_per_box) || 1) : (Number(isiPerBox) || 1);
     const qtyPcs = qtyBox * finalIsiPerBox;
 
     const noBatch = `${idSupplier}-${tanggal}`;
@@ -138,20 +138,20 @@ function inputBarangMasuk(idBarang, idSupplier, qtyBox, hargaBeli, tanggal, disk
       harga_beli: hargaBeli || 0,
       nomor_invoice_supplier: noInvoiceSupplier,
       batch_barang: noBatch,
-      alasan_perubahan: "Restock dari supplier",
+      alasan_perubahan: `Restock: ${qtyBox} Box (${finalIsiPerBox} PCS/Box). Harga: Rp${Number(hargaBeli).toLocaleString('id-ID')}`,
       user: username
     });
     
-    if (!utama) {
-      if (!idSupplier) {
-        throw new Error("Barang ini belum tertaut ke supplier. Pilih supplier untuk menautkan dan menambah stok pertama kali.");
-      }
-      
+    let stokBaru = qtyPcs;
+    
+    if (!supplierRelation) {
       const lastId = bsList.length > 0 ? bsList[bsList.length - 1].id_barang_supplier : "BS-000";
       const num = parseInt(lastId.replace("BS-", "")) + 1;
       const newId = "BS-" + String(num).padStart(3, "0");
       
-      utama = {
+      const existingUtama = bsList.find(bs => bs.id_barang === idBarang && (bs.is_utama == true || bs.is_utama === "TRUE") && bs.status === "Aktif");
+      
+      supplierRelation = {
         id_barang_supplier: newId,
         id_barang: idBarang,
         id_supplier: idSupplier,
@@ -159,20 +159,24 @@ function inputBarangMasuk(idBarang, idSupplier, qtyBox, hargaBeli, tanggal, disk
         diskon_persen: Number(diskonPersen) || 0,
         satuan: "PCS",
         isi_per_box: finalIsiPerBox,
-        stok_saat_ini: 0,
-        minimum_stok: 5,
+        stok_saat_ini: stokBaru,
+        minimum_stok: existingUtama ? existingUtama.minimum_stok : 5,
         lokasi_rak: "",
         kode_barang_supplier: "",
-        is_utama: true,
+        is_utama: existingUtama ? false : true,
         status: "Aktif"
       };
-      SheetService.appendRow("Barang_Supplier", utama);
+      SheetService.appendRow("Barang_Supplier", supplierRelation);
+    } else {
+      const stokLama = Number(supplierRelation.stok_saat_ini) || 0;
+      stokBaru = stokLama + qtyPcs;
+      
+      SheetService.updateRow("Barang_Supplier", supplierRelation.id_barang_supplier, { 
+        stok_saat_ini: stokBaru,
+        harga_beli: Number(hargaBeli) || Number(supplierRelation.harga_beli) || 0,
+        diskon_persen: diskonPersen !== undefined && diskonPersen !== "" ? Number(diskonPersen) : Number(supplierRelation.diskon_persen) || 0
+      });
     }
-    
-    const stokLama = Number(utama.stok_saat_ini) || 0;
-    const stokBaru = stokLama + qtyPcs;
-    
-    SheetService.updateRow("Barang_Supplier", utama.id_barang_supplier, { stok_saat_ini: stokBaru });
     
     try {
       logActivity("CREATE", "Stok Barang", `Barang Masuk: ${idBarang}, Qty: ${qtyBox} Box (${qtyPcs} PCS)`);
@@ -281,10 +285,11 @@ function updateStokBarang(idBarang, data) {
   if (!idBarang) throw new Error("ID Barang tidak valid.");
   
   const bsList = SheetService.readSheet("Barang_Supplier");
-  const utama = bsList.find(bs => bs.id_barang === idBarang &&
-    (bs.is_utama == true || bs.is_utama === "TRUE") && bs.status === "Aktif");
+  const relasi = bsList.filter(bs => bs.id_barang === idBarang && bs.status === "Aktif");
   
-  if (!utama) throw new Error("Supplier utama untuk barang ini belum diatur. Tautkan supplier utama terlebih dahulu.");
+  if (relasi.length === 0) throw new Error("Barang ini belum memiliki supplier aktif. Tambahkan supplier terlebih dahulu.");
+  
+  const utama = relasi.find(bs => bs.is_utama == true || bs.is_utama === "TRUE") || relasi[0];
   
   const payload = {};
   if (data.stok_saat_ini !== undefined) payload.stok_saat_ini = Number(data.stok_saat_ini);
@@ -296,6 +301,18 @@ function updateStokBarang(idBarang, data) {
   SheetService.updateRow("Barang_Supplier", utama.id_barang_supplier, payload);
   
   try {
+    const userRole = requireRole(['Admin', 'Restocker']);
+    const username = typeof userRole === 'string' ? userRole : (Session.getActiveUser().getEmail() || "admin");
+    SheetService.appendRow("Stock_Movement", {
+      id_movement: "MV-" + new Date().getTime(),
+      tanggal: new Date().toISOString(),
+      id_barang: idBarang,
+      id_supplier: utama.id_supplier,
+      tipe_pergerakan: "EDIT",
+      qty_box: 0, qty_pcs: 0, harga_beli: utama.harga_beli || 0, nomor_invoice_supplier: "", batch_barang: "",
+      alasan_perubahan: `Edit Manual: Stok ${payload.stok_saat_ini !== undefined ? payload.stok_saat_ini : utama.stok_saat_ini} PCS, Min ${payload.minimum_stok !== undefined ? payload.minimum_stok : utama.minimum_stok}`,
+      user: username
+    });
     logActivity("UPDATE", "Stok Barang", `Update stok/min/lokasi barang ${idBarang}`);
   } catch (e) {}
   
@@ -376,7 +393,7 @@ function getHistoriBarang(idBarang) {
     history.push({
       tanggal: m.tanggal,
       jenis: 'Stok (' + m.tipe_pergerakan + ')',
-      deskripsi: (m.qty_box > 0 || m.qty_pcs > 0) ? `${m.qty_box > 0 ? m.qty_box + ' Box ' : ''}${m.qty_pcs > 0 ? m.qty_pcs + ' Pcs ' : ''}- ${m.alasan_perubahan}` : m.alasan_perubahan,
+      deskripsi: (m.qty_pcs > 0 || m.qty_box > 0) ? `${m.qty_pcs > 0 ? m.qty_pcs : (m.qty_box || 0)} Pcs - ${m.alasan_perubahan}` : m.alasan_perubahan,
       user: m.user || 'Sistem'
     });
   });
@@ -404,3 +421,4 @@ function getHistoriBarang(idBarang) {
   
   return history;
 }
+function fixSatuanPcsAll() { const brg = SheetService.readSheet('Barang'); brg.forEach(b => { if(b.satuan !== 'PCS') SheetService.updateRow('Barang', b.id_barang, {satuan: 'PCS'}); }); const bs = SheetService.readSheet('Barang_Supplier'); bs.forEach(b => { if(b.satuan !== 'PCS') SheetService.updateRow('Barang_Supplier', b.id_barang_supplier, {satuan: 'PCS'}); }); } 

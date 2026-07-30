@@ -1052,34 +1052,33 @@
             max-width: 100%;
         }
 
-        /* Modals on Mobile transform to Bottom-Sheet style */
+        /* Modals on Mobile: Keep Centered, No Bottom-Sheet */
         .modal-overlay {
-            padding: 0;
-            align-items: flex-end;
+            padding: 12px;
+            align-items: center;
         }
 
         .modal-content {
-            border-bottom-left-radius: 0;
-            border-bottom-right-radius: 0;
-            max-height: 85vh;
-            max-height: 85dvh;
-            transform: translateY(100%);
+            border-radius: var(--radius-lg);
+            max-height: 92vh;
+            max-height: 92dvh;
+            transform: scale(0.95);
         }
 
         .modal-overlay.active .modal-content {
-            transform: translateY(0);
+            transform: scale(1);
         }
 
         .modal-header {
-            padding: 16px 20px;
+            padding: 14px 16px;
         }
 
         .modal-body {
-            padding: 20px;
+            padding: 16px;
         }
 
         .modal-footer {
-            padding: 14px 20px;
+            padding: 12px 16px;
         }
 
         /* Toasts on Mobile */

@@ -326,31 +326,43 @@ function tambahBarangSupplier(data) {
     row => row.id_barang === data.id_barang && row.id_supplier === data.id_supplier
   );
   if (existing) {
-    if (existing.status === "Aktif") {
-      throw new Error("Relasi Barang dan Supplier ini sudah ada dan masih Aktif.");
-    } else {
-      // Jika sudah ada tapi nonaktif, kita aktifkan kembali dan update harga
-      const payload = {
-        harga_beli: Number(data.harga_beli),
-        diskon_persen: Number(data.diskon_persen) || 0,
-        satuan: data.satuan || "PCS",
-        isi_per_box: Number(data.isi_per_box) || 1,
-        stok_saat_ini: Number(data.stok_saat_ini) || 0,
-        minimum_stok: Number(data.minimum_stok) || 5,
-        lokasi_rak: data.lokasi_rak || "",
-        kode_barang_supplier: data.kode_barang_supplier || existing.kode_barang_supplier || "",
-        status: "Aktif"
-      };
-      SheetService.updateRow("Barang_Supplier", existing.id_barang_supplier, payload);
-      logActivity("UPDATE", "Barang Supplier", `Mengaktifkan kembali tautan barang ${data.id_barang} dengan supplier ${data.id_supplier}`);
-      return existing.id_barang_supplier;
-    }
+    const payload = {
+      harga_beli: Number(data.harga_beli),
+      diskon_persen: data.diskon_persen !== undefined ? Number(data.diskon_persen) : (existing.diskon_persen || 0),
+      satuan: data.satuan || existing.satuan || "PCS",
+      isi_per_box: data.isi_per_box !== undefined ? Number(data.isi_per_box) : (existing.isi_per_box || 1),
+      stok_saat_ini: existing.stok_saat_ini, // Do not override stock
+      minimum_stok: existing.minimum_stok,   // Do not override minimum stock
+      lokasi_rak: data.lokasi_rak || existing.lokasi_rak || "",
+      kode_barang_supplier: data.kode_barang_supplier || existing.kode_barang_supplier || "",
+      status: "Aktif"
+    };
+    SheetService.updateRow("Barang_Supplier", existing.id_barang_supplier, payload);
+    logActivity("UPDATE", "Barang Supplier", `Memperbarui tautan/harga barang ${data.id_barang} dengan supplier ${data.id_supplier}`);
+    
+    try {
+      SheetService.appendRow("Stock_Movement", {
+        id_movement: "MV-" + new Date().getTime(),
+        tanggal: new Date().toISOString(),
+        id_barang: data.id_barang,
+        id_supplier: data.id_supplier,
+        tipe_pergerakan: "EDIT",
+        qty_box: 0, qty_pcs: 0, harga_beli: Number(data.harga_beli), nomor_invoice_supplier: "", batch_barang: "",
+        alasan_perubahan: `Update Supplier (Harga Beli: Rp${Number(data.harga_beli).toLocaleString('id-ID')})`,
+        user: Session.getActiveUser().getEmail() || "admin"
+      });
+    } catch(e) {}
+    
+    return existing.id_barang_supplier;
   }
   
   const bsList = SheetService.readSheet("Barang_Supplier");
   const lastId = bsList.length > 0 ? bsList[bsList.length - 1].id_barang_supplier : "BS-000";
   const num = parseInt(lastId.replace("BS-", "")) + 1;
   const newId = "BS-" + String(num).padStart(3, "0");
+  
+  const existingActive = bsList.filter(row => row.id_barang === data.id_barang && row.status === "Aktif");
+  const isUtamaVal = existingActive.length === 0 ? true : (data.is_utama ? true : false);
   
   const rowData = {
     id_barang_supplier: newId,
@@ -364,12 +376,26 @@ function tambahBarangSupplier(data) {
     minimum_stok: Number(data.minimum_stok) || 5,
     lokasi_rak: data.lokasi_rak || "",
     kode_barang_supplier: data.kode_barang_supplier || "",
-    is_utama: data.is_utama ? true : false,
+    is_utama: isUtamaVal,
     status: data.status || "Aktif"
   };
   
   SheetService.appendRow("Barang_Supplier", rowData);
-  logActivity("CREATE", "Barang Supplier", `Menautkan barang ${data.id_barang} dengan supplier ${data.id_supplier}`);
+  logActivity("CREATE", "Barang Supplier", `Tautan baru barang ${data.id_barang} dengan supplier ${data.id_supplier}`);
+  
+  try {
+    SheetService.appendRow("Stock_Movement", {
+      id_movement: "MV-" + new Date().getTime(),
+      tanggal: new Date().toISOString(),
+      id_barang: data.id_barang,
+      id_supplier: data.id_supplier,
+      tipe_pergerakan: "EDIT",
+      qty_box: 0, qty_pcs: 0, harga_beli: Number(data.harga_beli), nomor_invoice_supplier: "", batch_barang: "",
+      alasan_perubahan: `Tautkan Supplier Baru (Harga Beli: Rp${Number(data.harga_beli).toLocaleString('id-ID')})`,
+      user: Session.getActiveUser().getEmail() || "admin"
+    });
+  } catch(e) {}
+
   return newId;
 }
 
@@ -403,6 +429,24 @@ function hapusBarangSupplier(idBarangSupplier) {
   
   SheetService.updateRow("Barang_Supplier", idBarangSupplier, { status: "Nonaktif" });
   logActivity("DELETE", "Barang Supplier", `Menonaktifkan tautan: ${idBarangSupplier}`);
+  
+  try {
+    const bsList = SheetService.readSheet("Barang_Supplier");
+    const bs = bsList.find(r => r.id_barang_supplier === idBarangSupplier);
+    if (bs) {
+      SheetService.appendRow("Stock_Movement", {
+        id_movement: "MV-" + new Date().getTime(),
+        tanggal: new Date().toISOString(),
+        id_barang: bs.id_barang,
+        id_supplier: bs.id_supplier,
+        tipe_pergerakan: "EDIT",
+        qty_box: 0, qty_pcs: 0, harga_beli: 0, nomor_invoice_supplier: "", batch_barang: "",
+        alasan_perubahan: `Menghapus tautan supplier`,
+        user: Session.getActiveUser().getEmail() || "admin"
+      });
+    }
+  } catch(e) {}
+  
   return true;
 }
 
