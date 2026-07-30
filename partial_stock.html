@@ -67,7 +67,7 @@
 
             <div id="formStockSupplierGroup"
                 style="margin-bottom: 16px; padding: 16px; border: 1px solid var(--border-color); border-radius: 8px; background: #fafbfc;">
-                <h4 style="margin-top:0; margin-bottom: 12px; font-size: 14px; color: var(--text-main);"><i
+                <h4 style="margin-top:0; margin-bottom: 12px; font-size: 12px; color: var(--text-main);"><i
                         class='bx bx-link'></i> Tautkan Supplier Awal (Opsional)</h4>
                 <div class="grid" style="grid-template-columns: 2fr 1fr 1fr; gap: 12px;">
                     <div class="input-group" style="margin-bottom:0;">
@@ -145,7 +145,7 @@
 
             <hr style="margin: 20px 0; border: none; border-top: 1px solid var(--border-color);">
             <div style="margin-bottom: 12px;">
-                <h4 style="margin:0; font-size: 14px; color: var(--text-main);"><i class='bx bx-link'></i> Tautan
+                <h4 style="margin:0; font-size: 12px; color: var(--text-main);"><i class='bx bx-link'></i> Tautan
                     Supplier & Harga Beli</h4>
             </div>
 
@@ -272,8 +272,8 @@
             const diskonPersen = utamaSup ? (Number(utamaSup.diskon_persen) || 0) : 0;
 
             const extraSupCount = (b.suppliers && b.suppliers.length > 1)
-                ? `<br><small style="color:var(--primary-color); font-size:11px;">(+${b.suppliers.length - 1} lainnya) <i class='bx bx-chevron-down'></i></small>`
-                : `<br><small style="color:var(--primary-color); font-size:11px;">Lihat Detail <i class='bx bx-chevron-down'></i></small>`;
+                ? `<br><small style="color:var(--primary-color); font-size: 10px;">(+${b.suppliers.length - 1} lainnya) <i class='bx bx-chevron-down'></i></small>`
+                : `<br><small style="color:var(--primary-color); font-size: 10px;">Lihat Detail <i class='bx bx-chevron-down'></i></small>`;
 
             return `
             <tr class="main-row hoverable-row" onclick="toggleDetailSupplierStock('${b.id_barang}')" style="cursor: pointer; border-bottom: none;">
@@ -283,11 +283,11 @@
                     <small style="color:gray;">${barcodeStr || '-'}</small>
                 </td>
                 <td>
-                    <div style="font-weight: 500; font-size: 13px;">${namaSup}</div>
+                    <div style="font-weight: 500; font-size: 11px;">${namaSup}</div>
                     ${extraSupCount}
                 </td>
-                <td><span style="font-size: 13px;">Rp ${hargaBeli.toLocaleString('id-ID')}</span></td>
-                <td><span style="font-size: 13px;">${diskonPersen}%</span></td>
+                <td><span style="font-size: 11px;">Rp ${hargaBeli.toLocaleString('id-ID')}</span></td>
+                <td><span style="font-size: 11px;">${diskonPersen}%</span></td>
                 <td>
                     <span style="color: ${isWarning ? 'var(--warning-color)' : 'inherit'}; font-weight: ${isWarning ? '600' : '400'};">
                         ${stok} PCS
@@ -309,7 +309,7 @@
                         <div style="overflow: hidden;">
                             <div style="padding: 16px 24px;">
                                 <div id="detail-content-stock-${b.id_barang}" style="border: 1px solid rgba(0,0,0,0.05); border-radius: 12px; padding: 16px; background: white; box-shadow: 0 4px 12px rgba(0,0,0,0.02);">
-                                    <div style="text-align:center; color:var(--text-muted); font-size: 14px;"><i class='bx bx-loader-alt bx-spin'></i> Memuat detail supplier...</div>
+                                    <div style="text-align:center; color:var(--text-muted); font-size: 12px;"><i class='bx bx-loader-alt bx-spin'></i> Memuat detail supplier...</div>
                                 </div>
                             </div>
                         </div>
@@ -357,17 +357,17 @@
         // Gunakan data suppliers yang sudah di-embed di getStockList (tidak perlu call Barang_Supplier lagi)
         const b = masterStockList.find(x => x.id_barang === idBarang);
         if (!b) {
-            container.innerHTML = `<div style="text-align:center; color: var(--text-muted); font-size: 14px;"><i class='bx bx-info-circle'></i> Data barang tidak ditemukan.</div>`;
+            container.innerHTML = `<div style="text-align:center; color: var(--text-muted); font-size: 12px;"><i class='bx bx-info-circle'></i> Data barang tidak ditemukan.</div>`;
             return;
         }
 
         const suppliers = b.suppliers || [];
         if (suppliers.length === 0) {
-            container.innerHTML = `<div style="text-align:center; color: var(--text-muted); font-size: 14px;"><i class='bx bx-info-circle'></i> Belum ada data harga supplier yang ditautkan ke barang ini.</div>`;
+            container.innerHTML = `<div style="text-align:center; color: var(--text-muted); font-size: 12px;"><i class='bx bx-info-circle'></i> Belum ada data harga supplier yang ditautkan ke barang ini.</div>`;
             return;
         }
 
-        let html = `<h4 style="margin-top:0; margin-bottom:12px; font-size:14px; color:var(--text-main); display:flex; align-items:center; gap:6px;"><i class='bx bx-buildings'></i> Daftar Harga dari Supplier</h4>`;
+        let html = `<h4 style="margin-top:0; margin-bottom:12px; font-size: 12px; color:var(--text-main); display:flex; align-items:center; gap:6px;"><i class='bx bx-buildings'></i> Daftar Harga dari Supplier</h4>`;
         html += `<table class="table" style="margin:0; background: transparent; box-shadow: none;">
                     <thead style="background: rgba(0,0,0,0.02);">
                         <tr>
@@ -380,7 +380,7 @@
         suppliers.forEach(s => {
             html += `<tr>
                         <td style="padding: 8px 12px; border-bottom: 1px solid #eee;">
-                            <div style="font-weight:600; font-size:14px; margin-bottom:4px; display:flex; align-items:center; gap:8px;">
+                            <div style="font-weight:600; font-size: 12px; margin-bottom:4px; display:flex; align-items:center; gap:8px;">
                                 ${s.nama_supplier}
                             </div>
                         </td>
@@ -526,11 +526,11 @@
                 <div style="display:flex; gap:8px; align-items:center;">
                     <div style="flex:1;">
                         <small style="display:block;color:var(--text-muted);margin-bottom:2px;">Harga Beli</small>
-                        <input type="number" id="editStkHarga-${idBs}" class="input-control" value="${hargaBeli}" style="height:32px;font-size:13px;">
+                        <input type="number" id="editStkHarga-${idBs}" class="input-control" value="${hargaBeli}" style="height:32px;font-size: 11px;">
                     </div>
                     <div style="flex:0 0 90px;">
                         <small style="display:block;color:var(--text-muted);margin-bottom:2px;">Diskon (%)</small>
-                        <input type="number" id="editStkDiskon-${idBs}" class="input-control" value="${diskonPersen}" min="0" max="100" style="height:32px;font-size:13px;">
+                        <input type="number" id="editStkDiskon-${idBs}" class="input-control" value="${diskonPersen}" min="0" max="100" style="height:32px;font-size: 11px;">
                     </div>
                 </div>
             </td>

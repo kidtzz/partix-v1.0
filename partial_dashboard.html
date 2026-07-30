@@ -39,7 +39,7 @@
             padding: 16px;
         }
         .dash-value {
-            font-size: 24px !important;
+            font-size: 18px !important;
         }
         .bento-panel {
             padding: 16px;
@@ -47,7 +47,7 @@
         .dash-icon-box {
             width: 40px;
             height: 40px;
-            font-size: 20px;
+            font-size: 16px;
         }
     }
 
@@ -81,12 +81,12 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 26px;
+        font-size: 22px;
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
     }
 
     .dash-title {
-        font-size: 13px;
+        font-size: 11px;
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.8px;
@@ -95,8 +95,8 @@
     }
 
     .dash-value {
-        font-size: clamp(24px, 4vw, 34px);
-        font-weight: 800;
+        font-size: clamp(18px, 2.5vw, 24px);
+        font-weight: 700;
         line-height: 1.2;
         letter-spacing: -0.5px;
         word-break: break-word;
@@ -125,12 +125,12 @@
 
     .bento-panel-title {
         margin: 0;
-        font-size: 16px;
+        font-size: 13px;
         font-weight: 700;
-        color: var(--text-dark);
+        color: var(--text-main);
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 8px;
     }
 </style>
 
@@ -195,16 +195,16 @@
                 </div>
                 <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 16px; flex: 1;">
                     <div class="dash-card" style="background: #f8fafc; border: none; box-shadow: none; padding: 20px;">
-                        <div class="dash-title" style="color: #64748b; font-size: 11px;">Tunai (Cash)</div>
-                        <div id="dashCashHariIni" class="dash-value" style="color: #0f172a; font-size: 22px;">...</div>
+                        <div class="dash-title" style="color: #64748b; font-size: 10px;">Tunai (Cash)</div>
+                        <div id="dashCashHariIni" class="dash-value" style="color: #0f172a; font-size: 14px !important;">...</div>
                     </div>
                     <div class="dash-card" style="background: #f8fafc; border: none; box-shadow: none; padding: 20px;">
-                        <div class="dash-title" style="color: #64748b; font-size: 11px;">Transfer Bank</div>
-                        <div id="dashTransferHariIni" class="dash-value" style="color: #0f172a; font-size: 22px;">...</div>
+                        <div class="dash-title" style="color: #64748b; font-size: 10px;">Transfer Bank</div>
+                        <div id="dashTransferHariIni" class="dash-value" style="color: #0f172a; font-size: 14px !important;">...</div>
                     </div>
                     <div class="dash-card" style="background: #f8fafc; border: none; box-shadow: none; padding: 20px;">
-                        <div class="dash-title" style="color: #64748b; font-size: 11px;">QRIS / E-Wallet</div>
-                        <div id="dashQRISHariIni" class="dash-value" style="color: #0f172a; font-size: 22px;">...</div>
+                        <div class="dash-title" style="color: #64748b; font-size: 10px;">QRIS / E-Wallet</div>
+                        <div id="dashQRISHariIni" class="dash-value" style="color: #0f172a; font-size: 14px !important;">...</div>
                     </div>
                 </div>
             </div>
@@ -215,7 +215,7 @@
                     <h3 class="bento-panel-title" style="color: #e11d48;">
                         <i class='bx bx-cut'></i> Potongan Kasir
                     </h3>
-                    <select id="filterPotongan" class="input-control" style="width: auto; padding: 6px 12px; font-size: 13px; background: rgba(255,255,255,0.7); border: none; font-weight: 600; color: #be123c;" onchange="updatePotonganView()">
+                    <select id="filterPotongan" class="input-control" style="width: auto; padding: 6px 12px; font-size: 11px; background: rgba(255,255,255,0.7); border: none; font-weight: 600; color: #be123c;" onchange="updatePotonganView()">
                         <option value="harian">Harian</option>
                         <option value="mingguan">Mingguan</option>
                         <option value="bulanan" selected>Bulanan</option>

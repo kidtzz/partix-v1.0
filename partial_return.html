@@ -3,10 +3,6 @@
     <h2 class="view-title mb-0">
         <i class='bx bx-revision'></i> Return Barang
     </h2>
-    <div style="display: flex; gap: 8px;">
-        <button class="btn btn-primary" onclick="switchTabReturn('form')" id="btnTabForm">Proses Return</button>
-        <button class="btn btn-outline" onclick="switchTabReturn('list')" id="btnTabList">List Barang Return</button>
-    </div>
 </div>
 
 <div id="returnFormContainer">
@@ -26,31 +22,31 @@
 
             <div id="invoiceInfoPanel"
                 style="display: none; margin-top: 24px; padding-top: 24px; border-top: 1px dashed var(--border-color);">
-                <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">Informasi Invoice</div>
-                <div style="font-weight: 600; font-size: 16px; margin-bottom: 12px;">INV-20260726-0001</div>
+                <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">Informasi Invoice</div>
+                <div style="font-weight: 600; font-size: 14px; margin-bottom: 12px;">INV-20260726-0001</div>
 
                 <div class="flex justify-between mb-2">
-                    <span style="color: var(--text-muted); font-size: 14px;">Tanggal</span>
-                    <span style="font-size: 14px;">26 Jul 2026 14:30</span>
+                    <span style="color: var(--text-muted); font-size: 12px;">Tanggal</span>
+                    <span style="font-size: 12px;">26 Jul 2026 14:30</span>
                 </div>
                 <div class="flex justify-between mb-2">
-                    <span style="color: var(--text-muted); font-size: 14px;">Kasir</span>
-                    <span style="font-size: 14px;">Kasir 1</span>
+                    <span style="color: var(--text-muted); font-size: 12px;">Kasir</span>
+                    <span style="font-size: 12px;">Kasir 1</span>
                 </div>
                 <div class="flex justify-between">
-                    <span style="color: var(--text-muted); font-size: 14px;">Total</span>
-                    <span style="font-size: 14px; font-weight: 600;">Rp 100.000</span>
+                    <span style="color: var(--text-muted); font-size: 12px;">Total</span>
+                    <span style="font-size: 12px; font-weight: 600;">Rp 100.000</span>
                 </div>
             </div>
         </div>
 
         <!-- Right Column: Return Items -->
         <div class="glass-card" style="padding: 24px; display: flex; flex-direction: column;">
-            <h3 style="margin-top:0; margin-bottom: 16px; font-size: 16px;">Barang yang Dibeli</h3>
+            <h3 style="margin-top:0; margin-bottom: 16px; font-size: 14px;">Barang yang Dibeli</h3>
 
             <div id="emptyInvoiceState"
                 style="text-align: center; color: var(--text-muted); padding: 40px 0; opacity: 0.7;">
-                <i class='bx bx-receipt' style="font-size: 48px; margin-bottom: 12px;"></i>
+                <i class='bx bx-receipt' style="font-size: 40px; margin-bottom: 12px;"></i>
                 <p>Silakan cari nomor invoice terlebih dahulu</p>
             </div>
 
@@ -60,12 +56,12 @@
                     <div class="flex justify-between items-center mb-4">
                         <div>
                             <div style="font-weight: 600;">Kampas Rem Depan Vario</div>
-                            <div style="font-size: 13px; color: var(--text-muted);">Dibeli: 2 PCS @ Rp 45.000</div>
+                            <div style="font-size: 11px; color: var(--text-muted);">Dibeli: 2 PCS @ Rp 45.000</div>
                         </div>
                         <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
                             <input type="checkbox" style="width: 18px; height: 18px;"
                                 onchange="toggleReturnForm('RTN_B01', this.checked)">
-                            <span style="font-size: 14px; font-weight: 500;">Pilih Return</span>
+                            <span style="font-size: 12px; font-weight: 500;">Pilih Return</span>
                         </label>
                     </div>
 
@@ -97,42 +93,14 @@
                 </div>
 
                 <div
-                    style="margin-top: auto; padding-top: 24px; border-top: 1px solid var(--border-solid); text-align: right;">
-                    <button class="btn btn-primary" onclick="prosesReturn()">
+                    style="margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border-solid); text-align: right;">
+                    <button class="btn btn-primary" onclick="prosesReturn()" style="min-height: 28px; padding: 4px 12px; font-size: 11px;">
                         <i class='bx bx-check'></i> Proses Return
                     </button>
                 </div>
             </div>
         </div>
 
-    </div>
-</div>
-
-<!-- Return List Container -->
-<div id="returnListContainer" style="display: none;">
-    <div class="glass-card" style="padding: 24px;">
-        <h3 style="margin-top:0; margin-bottom: 16px; font-size: 16px;">Daftar Barang Cacat / Rusak</h3>
-        <button class="btn btn-outline mb-4" onclick="loadListBarangReturn()"><i class='bx bx-refresh'></i>
-            Refresh</button>
-        <div style="overflow-x: auto;">
-            <table class="table w-full">
-                <thead>
-                    <tr>
-                        <th>ID Return</th>
-                        <th>Tanggal</th>
-                        <th>Invoice Asal</th>
-                        <th>Nama Barang</th>
-                        <th>Qty Rusak</th>
-                        <th>Alasan</th>
-                    </tr>
-                </thead>
-                <tbody id="tbodyBarangReturn">
-                    <tr>
-                        <td colspan="6" style="text-align: center; color: var(--text-muted);">Memuat data...</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
     </div>
 </div>
 
@@ -340,16 +308,16 @@
 
     <div class="glass-card" style="padding: 24px;">
         <div style="overflow-x: auto;">
-            <table class="table w-full">
+            <table class="table table-hover" style="font-size: 11px;">
                 <thead>
                     <tr>
-                        <th>ID Return</th>
-                        <th>Tanggal</th>
-                        <th>Invoice Asal</th>
-                        <th>Nama Barang</th>
-                        <th>Qty Rusak</th>
-                        <th>Alasan</th>
-                        <th>Kasir/User</th>
+                        <th style="min-width: 100px;">ID Return</th>
+                        <th style="min-width: 120px;">Tanggal</th>
+                        <th style="min-width: 120px;">Invoice Asal</th>
+                        <th style="min-width: 180px;">Nama Barang</th>
+                        <th style="min-width: 80px;">Qty Rusak</th>
+                        <th style="min-width: 150px;">Alasan</th>
+                        <th style="min-width: 120px;">Kasir/User</th>
                     </tr>
                 </thead>
                 <tbody id="tbodyBarangReturn">
