@@ -172,7 +172,15 @@
             <div class="dash-card" style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                     <div>
-                        <div class="dash-title" style="color: var(--primary-color);">Pendapatan Hari Ini</div>
+                        <div class="dash-title" style="color: var(--primary-color); display: flex; align-items: center; gap: 8px;">
+                            <span id="dashRevenueTitle">Pendapatan Hari Ini</span>
+                            <select id="filterPendapatan" style="padding: 2px 4px; font-size: 9px; background: rgba(255,255,255,0.7); border: none; font-weight: 600; color: var(--primary-color); border-radius: 4px; cursor: pointer; outline: none;" onchange="updatePendapatanView()">
+                                <option value="harian" selected>Harian</option>
+                                <option value="mingguan">Mingguan</option>
+                                <option value="bulanan">Bulanan</option>
+                                <option value="tahunan">Tahunan</option>
+                            </select>
+                        </div>
                         <div id="dashTotalRevenue" class="dash-value" style="color: #1e3a8a;">...</div>
                     </div>
                     <div class="dash-icon-box" style="background: #ffffff; color: var(--primary-color);">
@@ -189,8 +197,14 @@
                 <div class="bento-panel-header">
                     <h3 class="bento-panel-title">
                         <i class='bx bx-pie-chart-alt-2' style="color: var(--primary-color);"></i>
-                        Rincian Pendapatan Hari Ini
+                        <span id="dashRincianTitle">Rincian Pendapatan Hari Ini</span>
                     </h3>
+                    <select id="filterRincian" class="input-control" style="width: auto; padding: 6px 12px; font-size: 11px; background: rgba(255,255,255,0.7); border: none; font-weight: 600; color: var(--primary-color); cursor: pointer;" onchange="updateRincianView()">
+                        <option value="harian" selected>Harian</option>
+                        <option value="mingguan">Mingguan</option>
+                        <option value="bulanan">Bulanan</option>
+                        <option value="tahunan">Tahunan</option>
+                    </select>
                 </div>
                 <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 16px; flex: 1;">
                     <div class="dash-card" style="background: #f8fafc; border: none; box-shadow: none; padding: 20px;">
@@ -233,9 +247,15 @@
                     <h3 class="bento-panel-title" style="color: #d97706;">
                         <i class='bx bx-revision'></i> Retur & Refund
                     </h3>
+                    <select id="filterRefund" class="input-control" style="width: auto; padding: 6px 12px; font-size: 11px; background: rgba(255,255,255,0.7); border: none; font-weight: 600; color: #d97706; cursor: pointer;" onchange="updateRefundView()">
+                        <option value="harian" selected>Harian</option>
+                        <option value="mingguan">Mingguan</option>
+                        <option value="bulanan">Bulanan</option>
+                        <option value="tahunan">Tahunan</option>
+                    </select>
                 </div>
                 <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
-                    <div class="dash-title" style="color: #d97706;">Total Refund Hari Ini</div>
+                    <div id="dashRefundTitle" class="dash-title" style="color: #d97706;">Total Refund Hari Ini</div>
                     <div id="dashRefundHariIni" class="dash-value" style="color: #92400e;">...</div>
                 </div>
             </div>
@@ -309,17 +329,13 @@
         BackendAPI.call('getDashboardStats').then(stats => {
             document.getElementById('dashTotalStock').textContent = stats.totalStockBarang.toLocaleString('id-ID');
             document.getElementById('dashTotalSales').textContent = (stats.totalPenjualanHariIni || 0).toLocaleString('id-ID') + ' Transaksi';
-            document.getElementById('dashTotalRevenue').textContent = formatRupiah(stats.totalPendapatanHariIni || 0);
-
-            document.getElementById('dashCashHariIni').textContent = formatRupiah(stats.pendapatanCashHariIni || 0);
-            document.getElementById('dashTransferHariIni').textContent = formatRupiah(stats.pendapatanTransferHariIni || 0);
-            document.getElementById('dashQRISHariIni').textContent = formatRupiah(stats.pendapatanQRISHariIni || 0);
-            
-            document.getElementById('dashRefundHariIni').textContent = formatRupiah(stats.totalRefundHariIni || 0);
-            
-            // Simpan stats untuk dipakai filter potongan
+            // Simpan stats untuk dipakai filter
             window.currentDashboardStats = stats;
+            
+            updatePendapatanView();
+            updateRincianView();
             updatePotonganView();
+            updateRefundView();
 
             const tbody = document.getElementById('dashLowStockTableBody');
             if (stats.notifikasiStockMinimum.length === 0) {
@@ -446,6 +462,82 @@
         } else if (val === 'tahunan') {
             titleEl.textContent = 'Potongan Tahun Ini';
             valueEl.textContent = "Rp " + (stats.totalPotonganTahunIni || 0).toLocaleString('id-ID');
+        }
+    }
+
+    function updatePendapatanView() {
+        if (!window.currentDashboardStats) return;
+        const val = document.getElementById('filterPendapatan').value;
+        const valueEl = document.getElementById('dashTotalRevenue');
+        const titleEl = document.getElementById('dashRevenueTitle');
+        const stats = window.currentDashboardStats;
+        
+        if (val === 'harian') {
+            titleEl.textContent = 'Pendapatan Hari Ini';
+            valueEl.textContent = formatRupiah(stats.totalPendapatanHariIni || 0);
+        } else if (val === 'mingguan') {
+            titleEl.textContent = 'Pendapatan Minggu Ini';
+            valueEl.textContent = formatRupiah(stats.totalPendapatanMingguIni || 0);
+        } else if (val === 'bulanan') {
+            titleEl.textContent = 'Pendapatan Bulan Ini';
+            valueEl.textContent = formatRupiah(stats.totalPendapatanBulanIni || 0);
+        } else if (val === 'tahunan') {
+            titleEl.textContent = 'Pendapatan Tahun Ini';
+            valueEl.textContent = formatRupiah(stats.totalPendapatanTahunIni || 0);
+        }
+    }
+
+    function updateRincianView() {
+        if (!window.currentDashboardStats) return;
+        const val = document.getElementById('filterRincian').value;
+        const titleEl = document.getElementById('dashRincianTitle');
+        const cashEl = document.getElementById('dashCashHariIni');
+        const transferEl = document.getElementById('dashTransferHariIni');
+        const qrisEl = document.getElementById('dashQRISHariIni');
+        const stats = window.currentDashboardStats;
+        
+        if (val === 'harian') {
+            titleEl.textContent = 'Rincian Pendapatan Hari Ini';
+            cashEl.textContent = formatRupiah(stats.pendapatanCashHariIni || 0);
+            transferEl.textContent = formatRupiah(stats.pendapatanTransferHariIni || 0);
+            qrisEl.textContent = formatRupiah(stats.pendapatanQRISHariIni || 0);
+        } else if (val === 'mingguan') {
+            titleEl.textContent = 'Rincian Pendapatan Minggu Ini';
+            cashEl.textContent = formatRupiah(stats.pendapatanCashMingguIni || 0);
+            transferEl.textContent = formatRupiah(stats.pendapatanTransferMingguIni || 0);
+            qrisEl.textContent = formatRupiah(stats.pendapatanQRISMingguIni || 0);
+        } else if (val === 'bulanan') {
+            titleEl.textContent = 'Rincian Pendapatan Bulan Ini';
+            cashEl.textContent = formatRupiah(stats.pendapatanCashBulanIni || 0);
+            transferEl.textContent = formatRupiah(stats.pendapatanTransferBulanIni || 0);
+            qrisEl.textContent = formatRupiah(stats.pendapatanQRISBulanIni || 0);
+        } else if (val === 'tahunan') {
+            titleEl.textContent = 'Rincian Pendapatan Tahun Ini';
+            cashEl.textContent = formatRupiah(stats.pendapatanCashTahunIni || 0);
+            transferEl.textContent = formatRupiah(stats.pendapatanTransferTahunIni || 0);
+            qrisEl.textContent = formatRupiah(stats.pendapatanQRISTahunIni || 0);
+        }
+    }
+
+    function updateRefundView() {
+        if (!window.currentDashboardStats) return;
+        const val = document.getElementById('filterRefund').value;
+        const valueEl = document.getElementById('dashRefundHariIni');
+        const titleEl = document.getElementById('dashRefundTitle');
+        const stats = window.currentDashboardStats;
+        
+        if (val === 'harian') {
+            titleEl.textContent = 'Total Refund Hari Ini';
+            valueEl.textContent = formatRupiah(stats.totalRefundHariIni || 0);
+        } else if (val === 'mingguan') {
+            titleEl.textContent = 'Total Refund Minggu Ini';
+            valueEl.textContent = formatRupiah(stats.totalRefundMingguIni || 0);
+        } else if (val === 'bulanan') {
+            titleEl.textContent = 'Total Refund Bulan Ini';
+            valueEl.textContent = formatRupiah(stats.totalRefundBulanIni || 0);
+        } else if (val === 'tahunan') {
+            titleEl.textContent = 'Total Refund Tahun Ini';
+            valueEl.textContent = formatRupiah(stats.totalRefundTahunIni || 0);
         }
     }
 </script>

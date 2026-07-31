@@ -5,19 +5,33 @@
 
 function getDashboardStats() {
   requireRole(['Admin']); // Hanya admin yang boleh melihat data sensitif ini
-  
-  const stats = {
+    const stats = {
     totalStockBarang: 0,
     totalPenjualanHariIni: 0,
     totalPendapatanHariIni: 0,
+    totalPendapatanMingguIni: 0,
+    totalPendapatanBulanIni: 0,
+    totalPendapatanTahunIni: 0,
     pendapatanCashHariIni: 0,
+    pendapatanCashMingguIni: 0,
+    pendapatanCashBulanIni: 0,
+    pendapatanCashTahunIni: 0,
     pendapatanTransferHariIni: 0,
+    pendapatanTransferMingguIni: 0,
+    pendapatanTransferBulanIni: 0,
+    pendapatanTransferTahunIni: 0,
     pendapatanQRISHariIni: 0,
+    pendapatanQRISMingguIni: 0,
+    pendapatanQRISBulanIni: 0,
+    pendapatanQRISTahunIni: 0,
     totalPotonganHariIni: 0,
     totalPotonganMingguIni: 0,
     totalPotonganBulanIni: 0,
     totalPotonganTahunIni: 0,
     totalRefundHariIni: 0,
+    totalRefundMingguIni: 0,
+    totalRefundBulanIni: 0,
+    totalRefundTahunIni: 0,
     dailySales: {},
     notifikasiStockMinimum: []
   };
@@ -76,26 +90,41 @@ function getDashboardStats() {
         const txDateObj = new Date(tx.tanggal);
         const txDateStr = txDateObj.toLocaleString('en-CA', { timeZone: 'Asia/Jakarta' }).split(',')[0].trim();
         const potongan = Number(tx.potongan_penjualan) || 0;
+        const tTotal = Number(tx.total) || 0;
+        const metode = (tx.metode_pembayaran || "").toLowerCase();
         
         if (txDateStr === todayStr) {
-          const tTotal = Number(tx.total) || 0;
           stats.totalPenjualanHariIni++;
           stats.totalPendapatanHariIni += tTotal;
           stats.totalPotonganHariIni += potongan;
-          
-          const metode = (tx.metode_pembayaran || "").toLowerCase();
-          if (metode === "cash") {
-              stats.pendapatanCashHariIni += tTotal;
-          } else if (metode === "transfer") {
-              stats.pendapatanTransferHariIni += tTotal;
-          } else if (metode === "qris") {
-              stats.pendapatanQRISHariIni += tTotal;
-          }
+          if (metode === "cash") stats.pendapatanCashHariIni += tTotal;
+          else if (metode === "transfer") stats.pendapatanTransferHariIni += tTotal;
+          else if (metode === "qris") stats.pendapatanQRISHariIni += tTotal;
         }
         
-        if (txDateObj >= startOfWeek) stats.totalPotonganMingguIni += potongan;
-        if (txDateObj >= startOfMonth) stats.totalPotonganBulanIni += potongan;
-        if (txDateObj >= startOfYear) stats.totalPotonganTahunIni += potongan;
+        if (txDateObj >= startOfWeek) {
+          stats.totalPotonganMingguIni += potongan;
+          stats.totalPendapatanMingguIni += tTotal;
+          if (metode === "cash") stats.pendapatanCashMingguIni += tTotal;
+          else if (metode === "transfer") stats.pendapatanTransferMingguIni += tTotal;
+          else if (metode === "qris") stats.pendapatanQRISMingguIni += tTotal;
+        }
+        
+        if (txDateObj >= startOfMonth) {
+          stats.totalPotonganBulanIni += potongan;
+          stats.totalPendapatanBulanIni += tTotal;
+          if (metode === "cash") stats.pendapatanCashBulanIni += tTotal;
+          else if (metode === "transfer") stats.pendapatanTransferBulanIni += tTotal;
+          else if (metode === "qris") stats.pendapatanQRISBulanIni += tTotal;
+        }
+        
+        if (txDateObj >= startOfYear) {
+          stats.totalPotonganTahunIni += potongan;
+          stats.totalPendapatanTahunIni += tTotal;
+          if (metode === "cash") stats.pendapatanCashTahunIni += tTotal;
+          else if (metode === "transfer") stats.pendapatanTransferTahunIni += tTotal;
+          else if (metode === "qris") stats.pendapatanQRISTahunIni += tTotal;
+        }
         
         if (!stats.dailySales[txDateStr]) {
             stats.dailySales[txDateStr] = 0;
@@ -108,13 +137,16 @@ function getDashboardStats() {
     const returnList = SheetService.readSheet("Return");
     returnList.forEach(r => {
       if (r.tanggal && r.status === "Selesai") {
-        const retDateStr = new Date(r.tanggal).toLocaleString('en-CA', { timeZone: 'Asia/Jakarta' }).split(',')[0].trim();
-        if (retDateStr === todayStr) {
-           const selisih = Number(r.selisih_harga) || 0;
-           if (selisih < 0) {
-              // Jika selisih bayar negatif (Toko kembalikan uang), masuk ke total refund
-              stats.totalRefundHariIni += Math.abs(selisih);
-           }
+        const retDateObj = new Date(r.tanggal);
+        const retDateStr = retDateObj.toLocaleString('en-CA', { timeZone: 'Asia/Jakarta' }).split(',')[0].trim();
+        const selisih = Number(r.selisih_harga) || 0;
+        
+        if (selisih < 0) {
+           const refundAmount = Math.abs(selisih);
+           if (retDateStr === todayStr) stats.totalRefundHariIni += refundAmount;
+           if (retDateObj >= startOfWeek) stats.totalRefundMingguIni += refundAmount;
+           if (retDateObj >= startOfMonth) stats.totalRefundBulanIni += refundAmount;
+           if (retDateObj >= startOfYear) stats.totalRefundTahunIni += refundAmount;
         }
       }
     });
