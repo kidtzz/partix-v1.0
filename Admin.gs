@@ -96,15 +96,31 @@ function updateMasterBarang(idBarang, data) {
     nama_barang: data.nama_barang,
     merk: data.merk || "",
     kategori: data.kategori || "",
-    status_barang: data.status_barang || "Aktif"
+    status_barang: data.status_barang !== undefined ? data.status_barang : (oldRow ? oldRow.status_barang : "Aktif")
     // CATATAN: field inventory (satuan, stok, dll) tidak diupdate di sini
     // gunakan updateBarangSupplier() atau updateStokBarang() untuk itu
   };
   
   SheetService.updateRow("Barang", idBarang, updatedFields);
+  
+  if (oldRow && oldRow.status_barang !== updatedFields.status_barang) {
+    _cascadeStatusToStok(idBarang, updatedFields.status_barang);
+  }
+  
   logActivity("UPDATE", "Master Barang", `Update barang: ${idBarang} - Status: ${updatedFields.status_barang}`);
   
   return true;
+}
+
+function _cascadeStatusToStok(idBarang, statusBaru) {
+  try {
+    const bsList = SheetService.readSheet("Barang_Supplier").filter(b => b.id_barang === idBarang);
+    bsList.forEach(bs => {
+      SheetService.updateRow("Barang_Supplier", bs.id_barang_supplier, { status: statusBaru });
+    });
+  } catch(e) {
+    console.error("Gagal cascade status ke stok:", e);
+  }
 }
 
 function updateStatusBarang(idBarang, statusBaru) {
@@ -112,7 +128,20 @@ function updateStatusBarang(idBarang, statusBaru) {
   if (!idBarang || !statusBaru) throw new Error("ID Barang dan Status Baru harus diisi.");
   
   SheetService.updateRow("Barang", idBarang, { status_barang: statusBaru });
+  _cascadeStatusToStok(idBarang, statusBaru);
+  
   logActivity("UPDATE", "Status Barang", `Update status barang: ${idBarang} menjadi ${statusBaru}`);
+  return true;
+}
+
+function ubahStatusBarang(idBarang, statusBaru) {
+  requireRole(['Admin']);
+  if (!idBarang || !statusBaru) throw new Error("ID atau status baru tidak valid.");
+  
+  SheetService.updateRow("Barang", idBarang, { status_barang: statusBaru });
+  _cascadeStatusToStok(idBarang, statusBaru);
+  
+  logActivity("UPDATE", "Master Barang", `Ubah status barang ${idBarang} menjadi ${statusBaru}`);
   return true;
 }
 

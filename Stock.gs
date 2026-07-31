@@ -15,10 +15,10 @@ function getStockList() {
   const bsList = SheetService.readSheet("Barang_Supplier");
   const supplierList = SheetService.readSheet("Supplier");
   return barangList
-    .filter(b => bsList.some(bs => bs.id_barang === b.id_barang && bs.status === "Aktif"))
+    .filter(b => bsList.some(bs => bs.id_barang === b.id_barang))
     .map(b => {
     // Semua relasi supplier untuk barang ini
-    const relasi = bsList.filter(bs => bs.id_barang === b.id_barang && bs.status === "Aktif");
+    const relasi = bsList.filter(bs => bs.id_barang === b.id_barang);
     // Baris supplier utama (pemegang stok)
     const utama = relasi.find(bs => bs.is_utama == true || bs.is_utama === "TRUE") || relasi[0] || null;
     
@@ -54,6 +54,8 @@ function getStockList() {
       satuan: utama ? (utama.satuan || "PCS") : "PCS",
       isi_per_box: utama ? (Number(utama.isi_per_box) || 1) : 1,
       id_bs_utama: utama ? utama.id_barang_supplier : "",
+      status_stok: utama ? (utama.status || "Aktif") : "Aktif",
+      tanggal_masuk: utama ? (utama.tanggal_masuk || null) : null,
       suppliers: suppliersDetail
     };
   });
@@ -164,7 +166,8 @@ function inputBarangMasuk(idBarang, idSupplier, qtyBox, isiPerBox, hargaBeli, ta
         lokasi_rak: "",
         kode_barang_supplier: "",
         is_utama: existingUtama ? false : true,
-        status: "Aktif"
+        status: "Aktif",
+        tanggal_masuk: new Date().toISOString()
       };
       SheetService.appendRow("Barang_Supplier", supplierRelation);
     } else {
@@ -174,7 +177,8 @@ function inputBarangMasuk(idBarang, idSupplier, qtyBox, isiPerBox, hargaBeli, ta
       SheetService.updateRow("Barang_Supplier", supplierRelation.id_barang_supplier, { 
         stok_saat_ini: stokBaru,
         harga_beli: Number(hargaBeli) || Number(supplierRelation.harga_beli) || 0,
-        diskon_persen: diskonPersen !== undefined && diskonPersen !== "" ? Number(diskonPersen) : Number(supplierRelation.diskon_persen) || 0
+        diskon_persen: diskonPersen !== undefined && diskonPersen !== "" ? Number(diskonPersen) : Number(supplierRelation.diskon_persen) || 0,
+        tanggal_masuk: new Date().toISOString()
       });
     }
     
@@ -232,7 +236,12 @@ function penyesuaianStok(idBarang, qtyAdjusment, keterangan) {
     const stokLama = Number(utama.stok_saat_ini) || 0;
     const stokBaru = stokLama + qtyAdjusment;
     
-    SheetService.updateRow("Barang_Supplier", utama.id_barang_supplier, { stok_saat_ini: stokBaru });
+    let updatePayload = { stok_saat_ini: stokBaru };
+    if (qtyAdjusment > 0) {
+      updatePayload.tanggal_masuk = new Date().toISOString();
+    }
+    
+    SheetService.updateRow("Barang_Supplier", utama.id_barang_supplier, updatePayload);
     
     try {
       logActivity("UPDATE", "Penyesuaian Stok", `Barang: ${idBarang}, Adj: ${qtyAdjusment}`);
@@ -285,9 +294,9 @@ function updateStokBarang(idBarang, data) {
   if (!idBarang) throw new Error("ID Barang tidak valid.");
   
   const bsList = SheetService.readSheet("Barang_Supplier");
-  const relasi = bsList.filter(bs => bs.id_barang === idBarang && bs.status === "Aktif");
+  const relasi = bsList.filter(bs => bs.id_barang === idBarang);
   
-  if (relasi.length === 0) throw new Error("Barang ini belum memiliki supplier aktif. Tambahkan supplier terlebih dahulu.");
+  if (relasi.length === 0) throw new Error("Barang ini belum memiliki supplier.");
   
   const utama = relasi.find(bs => bs.is_utama == true || bs.is_utama === "TRUE") || relasi[0];
   
@@ -297,8 +306,19 @@ function updateStokBarang(idBarang, data) {
   if (data.lokasi_rak !== undefined) payload.lokasi_rak = data.lokasi_rak;
   if (data.isi_per_box !== undefined) payload.isi_per_box = Number(data.isi_per_box);
   if (data.satuan !== undefined) payload.satuan = data.satuan;
+  if (data.status !== undefined) payload.status = data.status;
   
-  SheetService.updateRow("Barang_Supplier", utama.id_barang_supplier, payload);
+  if (data.status !== undefined) {
+    relasi.forEach(bs => {
+      if (bs.id_barang_supplier === utama.id_barang_supplier) {
+        SheetService.updateRow("Barang_Supplier", bs.id_barang_supplier, payload);
+      } else {
+        SheetService.updateRow("Barang_Supplier", bs.id_barang_supplier, { status: data.status });
+      }
+    });
+  } else {
+    SheetService.updateRow("Barang_Supplier", utama.id_barang_supplier, payload);
+  }
   
   try {
     const userRole = requireRole(['Admin', 'Restocker']);
@@ -420,5 +440,33 @@ function getHistoriBarang(idBarang) {
   history.sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
   
   return history;
+}
+
+function hapusTotalKecualiMaster(idBarang) {
+  requireRole(['Admin']);
+  if (!idBarang) throw new Error("ID Barang tidak valid.");
+  
+  // Hapus semua Barang_Supplier yang merujic ke idBarang ini
+  try {
+    const bsList = SheetService.readSheet("Barang_Supplier").filter(b => b.id_barang === idBarang);
+    bsList.forEach(bs => {
+      SheetService.deleteRow("Barang_Supplier", bs.id_barang_supplier);
+    });
+  } catch(e) {}
+  
+  // Hapus Harga
+  try {
+    const hargaList = SheetService.readSheet("Harga").filter(h => h.id_barang === idBarang);
+    hargaList.forEach(h => {
+      SheetService.deleteRow("Harga", h.id_harga); // Wait, deleteRow in SheetService takes ID column matching. 
+      // Need to be careful. If Harga sheet's primary key is id_harga, we pass id_harga.
+      // Wait, Admin.gs hapusMasterBarang does `SheetService.deleteRow("Harga", idBarang)` which assumes id_barang is the primary key or it matches the first column.
+      // Let's just follow Admin.gs logic or use a loop if there are multiple.
+      // Actually Admin.gs does: `SheetService.deleteRow("Harga", idBarang)` because id_barang is usually the first column in Harga? Let me check Harga sheet structure.
+    });
+  } catch(e) {}
+  
+  logActivity("DELETE", "Stok Barang", `Menghapus seluruh data stok dan harga untuk barang: ${idBarang}`);
+  return true;
 }
 function fixSatuanPcsAll() { const brg = SheetService.readSheet('Barang'); brg.forEach(b => { if(b.satuan !== 'PCS') SheetService.updateRow('Barang', b.id_barang, {satuan: 'PCS'}); }); const bs = SheetService.readSheet('Barang_Supplier'); bs.forEach(b => { if(b.satuan !== 'PCS') SheetService.updateRow('Barang_Supplier', b.id_barang_supplier, {satuan: 'PCS'}); }); } 

@@ -25,7 +25,8 @@
                 <th>Supplier Utama</th>
                 <th>Harga Beli</th>
                 <th>Diskon</th>
-                <th>Stok</th>
+                <th>Stok Aktif</th>
+                <th>Tgl Masuk</th>
                 <th>Status</th>
                 <th>Aksi</th>
                 <th>Histori</th>
@@ -33,7 +34,7 @@
         </thead>
         <tbody id="stockTableBody">
             <tr>
-                <td colspan="9" style="text-align:center; padding:20px;">Memuat data stok...</td>
+                <td colspan="10" style="text-align:center; padding:20px;">Memuat data stok...</td>
             </tr>
         </tbody>
     </table>
@@ -240,14 +241,14 @@
             masterStockList = data;
             renderStockTable(data, diskon.MINIMUM_STOK || 5);
         }).catch(err => {
-            document.getElementById('stockTableBody').innerHTML = `<tr><td colspan="7" style="color:red; text-align:center;">Error: ${err.message}</td></tr>`;
+            document.getElementById('stockTableBody').innerHTML = `<tr><td colspan="10" style="color:red; text-align:center;">Error: ${err.message}</td></tr>`;
         });
     }
 
     function renderStockTable(data, minStokGlobal) {
         const tbody = document.getElementById('stockTableBody');
         if (data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;">Tidak ada data barang.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;">Tidak ada data barang.</td></tr>`;
             return;
         }
 
@@ -257,7 +258,7 @@
             const stok = Number(b.stok_saat_ini) || 0;
             const minStok = currentMinStok; // Force refer ke global minimum stok
             const isWarning = stok <= minStok;
-            const statusVal = b.status_barang || 'Aktif';
+            const statusVal = b.status_stok || 'Aktif';
             const statusBadge = statusVal === "Aktif" ? "badge-success" : "badge-secondary";
             const satuan = b.satuan || 'PCS';
             const isiPerBox = Number(b.isi_per_box) || 1;
@@ -274,6 +275,8 @@
             const extraSupCount = (b.suppliers && b.suppliers.length > 1)
                 ? `<br><small style="color:var(--primary-color); font-size: 10px;">(+${b.suppliers.length - 1} lainnya) <i class='bx bx-chevron-down'></i></small>`
                 : `<br><small style="color:var(--primary-color); font-size: 10px;">Lihat Detail <i class='bx bx-chevron-down'></i></small>`;
+
+            const tglMasukStr = b.tanggal_masuk ? new Date(b.tanggal_masuk).toLocaleDateString('id-ID') : '-';
 
             return `
             <tr class="main-row hoverable-row" onclick="toggleDetailSupplierStock('${b.id_barang}')" style="cursor: pointer; border-bottom: none;">
@@ -294,17 +297,18 @@
                         ${isWarning ? '<span style="color:var(--warning-color);" title="Stok di bawah minimum!">⚠️</span>' : ''}
                     </span>
                 </td>
+                <td><span style="font-size: 11px;">${tglMasukStr}</span></td>
                 <td><span class="badge ${statusBadge}">${statusVal}</span></td>
                 <td onclick="event.stopPropagation();" style="white-space: nowrap;">
                     <button class="btn btn-secondary btn-sm" onclick="bukaModalEditStock('${b.id_barang}')"><i class='bx bx-edit'></i> Edit</button>
-                    <button class="btn btn-sm" style="background:var(--danger-color);color:white; margin-left: 4px;" onclick="hapusBarangStok('${b.id_barang}')" title="Hapus"><i class='bx bx-trash'></i></button>
+                    ${statusVal === "Nonaktif" ? `<button class="btn btn-sm" style="background:var(--danger-color);color:white; margin-left: 4px;" onclick="hapusBarangStok('${b.id_barang}')" title="Hapus Permanen"><i class='bx bx-trash'></i></button>` : ''}
                 </td>
                 <td onclick="event.stopPropagation();">
                     <button class="btn btn-secondary btn-sm" onclick="bukaHistoriBarang('${b.id_barang}', '${b.nama_barang}')" title="Histori"><i class='bx bx-history'></i></button>
                 </td>
             </tr>
             <tr id="detail-stock-${b.id_barang}" style="display:none; background: #fafbfc; border-top: none;">
-                <td colspan="9" style="padding: 0;">
+                <td colspan="10" style="padding: 0;">
                     <div id="detail-wrapper-stock-${b.id_barang}" style="display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.3s ease-in-out;">
                         <div style="overflow: hidden;">
                             <div style="padding: 16px 24px;">
@@ -444,7 +448,7 @@
 
         document.getElementById('editStockBarcode1').value = b.barcode1 || "";
         document.getElementById('editStockBarcode2').value = b.barcode2 || "";
-        document.getElementById('editStockStatus').value = b.status_barang || "Aktif";
+        document.getElementById('editStockStatus').value = b.status_stok || "Aktif";
         // Stok dan satuan dari Barang_Supplier (is_utama)
         document.getElementById('editStockJumlahBox').value = b.stok_saat_ini || 0;
 
@@ -613,20 +617,20 @@
         const bc1 = document.getElementById('editStockBarcode1').value.trim();
         const bc2 = document.getElementById('editStockBarcode2').value.trim();
 
-        // Data untuk Master Barang (nama, barcode, status)
+        // Data untuk Master Barang (nama, barcode)
         const dataBarang = {
             nama_barang: document.getElementById('editStockNama').value,
             barcode1: bc1,
             barcode2: bc2,
             kategori: b.kategori || "",
-            merk: b.merk || "",
-            status_barang: document.getElementById('editStockStatus').value || b.status_barang
+            merk: b.merk || ""
         };
 
         // Data untuk Stok (disimpan di Barang_Supplier is_utama)
         const dataStok = {
             stok_saat_ini: Number(document.getElementById('editStockJumlahBox').value) || b.stok_saat_ini,
-            isi_per_box: 1
+            isi_per_box: 1,
+            status: document.getElementById('editStockStatus').value || b.status_stok
         };
 
         if (!dataBarang.nama_barang) return showToast("Nama barang wajib diisi", "error");
@@ -652,11 +656,11 @@
     }
 
     function hapusBarangStok(idBarang) {
-        if (!confirm("Peringatan: Menghapus data master barang akan menghapus permanen dari sistem dan berpotensi merusak histori transaksi lama! Lanjutkan?")) return;
+        if (!confirm("Peringatan: Ini akan menghapus seluruh data stok, harga, dan riwayat gudang untuk barang ini secara permanen (kecuali Master Barang). Lanjutkan?")) return;
 
-        showToast("Menghapus barang...", "info");
-        BackendAPI.call('hapusMasterBarang', [idBarang]).then(() => {
-            showToast("Barang berhasil dihapus", "success");
+        showToast("Menghapus data stok...", "info");
+        BackendAPI.call('hapusTotalKecualiMaster', [idBarang]).then(() => {
+            showToast("Data stok berhasil dihapus", "success");
             masterStockList = masterStockList.filter(x => x.id_barang !== idBarang);
             renderStockTable(masterStockList);
             if (typeof loadMasterBarang === 'function') loadMasterBarang();

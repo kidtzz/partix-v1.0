@@ -16,7 +16,7 @@ const DB_SCHEMA = {
   "Supplier": ["id_supplier", "nama_supplier", "pic", "nomor_hp", "email", "status_supplier"],
   // Barang_Supplier = data inventory lengkap per relasi barang-supplier
   // stok_saat_ini, minimum_stok, lokasi_rak hanya diisi di baris is_utama=true
-  "Barang_Supplier": ["id_barang_supplier", "id_barang", "id_supplier", "harga_beli", "diskon_persen", "satuan", "isi_per_box", "stok_saat_ini", "minimum_stok", "lokasi_rak", "kode_barang_supplier", "is_utama", "status"],
+  "Barang_Supplier": ["id_barang_supplier", "id_barang", "id_supplier", "harga_beli", "diskon_persen", "satuan", "isi_per_box", "stok_saat_ini", "minimum_stok", "lokasi_rak", "kode_barang_supplier", "is_utama", "status", "tanggal_masuk"],
   "Harga": ["id_harga", "id_barang", "harga_regular", "harga_langganan", "harga_teman", "tanggal_berlaku", "status_harga", "keterangan_perubahan"],
   "Stock_Movement": ["id_movement", "tanggal", "id_barang", "id_supplier", "tipe_pergerakan", "qty_box", "qty_pcs", "harga_beli", "nomor_invoice_supplier", "batch_barang", "alasan_perubahan", "user"],
   "Penjualan": ["no_invoice", "tanggal", "kasir", "kategori_customer", "subtotal", "potongan_penjualan", "total", "metode_pembayaran", "detail_pembayaran", "kembalian", "status_transaksi"],
@@ -139,15 +139,15 @@ function installDatabase(existingSheetId) {
 
   // 5. Barang_Supplier
   const bsSheet = ss.getSheetByName("Barang_Supplier");
-  bsSheet.appendRow(["BS-001", "BRG-001", "SUP-001", 35000, 0, "BOTOL", 24, 50, 10, "Rak A1", "AST-OLI", true, "Aktif"]);
-  bsSheet.appendRow(["BS-002", "BRG-002", "SUP-002", 12000, 0, "PCS", 10, 20, 5, "Rak B2", "MM-BUSI", true, "Aktif"]);
-  bsSheet.appendRow(["BS-003", "BRG-003", "SUP-001", 20000, 0, "SET", 1, 15, 5, "Rak C3", "AST-REM", true, "Aktif"]);
-  bsSheet.appendRow(["BS-004", "BRG-004", "SUP-003", 150000, 0, "PCS", 1, 30, 5, "Rak D4", "SJ-BAN", true, "Aktif"]);
-  bsSheet.appendRow(["BS-005", "BRG-005", "SUP-004", 45000, 0, "PCS", 1, 10, 2, "Rak E5", "IP-LAMP", true, "Aktif"]);
+  const today = new Date().toISOString();
+  bsSheet.appendRow(["BS-001", "BRG-001", "SUP-001", 35000, 0, "BOTOL", 24, 50, 10, "Rak A1", "AST-OLI", true, "Aktif", today]);
+  bsSheet.appendRow(["BS-002", "BRG-002", "SUP-002", 12000, 0, "PCS", 10, 20, 5, "Rak B2", "MM-BUSI", true, "Aktif", today]);
+  bsSheet.appendRow(["BS-003", "BRG-003", "SUP-001", 20000, 0, "SET", 1, 15, 5, "Rak C3", "AST-REM", true, "Aktif", today]);
+  bsSheet.appendRow(["BS-004", "BRG-004", "SUP-003", 150000, 0, "PCS", 1, 30, 5, "Rak D4", "SJ-BAN", true, "Aktif", today]);
+  bsSheet.appendRow(["BS-005", "BRG-005", "SUP-004", 45000, 0, "PCS", 1, 10, 2, "Rak E5", "IP-LAMP", true, "Aktif", today]);
 
   // 6. Harga
   const hargaSheet = ss.getSheetByName("Harga");
-  const today = new Date().toISOString();
   hargaSheet.appendRow(["HRG-001", "BRG-001", 45000, 43000, 40000, today, "Aktif", "Awal Setup"]);
   hargaSheet.appendRow(["HRG-002", "BRG-002", 15000, 14000, 13000, today, "Aktif", "Awal Setup"]);
   hargaSheet.appendRow(["HRG-003", "BRG-003", 30000, 28000, 25000, today, "Aktif", "Awal Setup"]);

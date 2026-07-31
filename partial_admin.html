@@ -167,12 +167,13 @@
                         <th>Barcode 1</th>
                         <th>Barcode 2</th>
                         <th>Nama Barang</th>
+                        <th>Status</th>
                         <th>Aksi</th>
                     </tr>
                 </thead>
                 <tbody id="adminBarangTableBody">
                     <tr>
-                        <td colspan="5" style="text-align:center;">Memuat data...</td>
+                        <td colspan="6" style="text-align:center;">Memuat data...</td>
                     </tr>
                 </tbody>
             </table>
@@ -409,7 +410,13 @@
                     <input type="text" class="input-control" id="formBarangBarcode2" pattern="[0-9]*"
                         inputmode="numeric" placeholder="Hanya Angka">
                 </div>
-
+                <div class="input-group" style="margin-bottom: 0;">
+                    <label>Status Barang</label>
+                    <select class="input-control" id="formBarangStatus">
+                        <option value="Aktif">Aktif</option>
+                        <option value="Nonaktif">Nonaktif</option>
+                    </select>
+                </div>
             </div>
 
 
@@ -936,14 +943,14 @@
             renderAdminBarang(data);
             isMasterBarangLoaded = true;
         }).catch(err => {
-            document.getElementById('adminBarangTableBody').innerHTML = `<tr><td colspan="5" style="color:red; text-align:center;">Error: ${err.message}</td></tr>`;
+            document.getElementById('adminBarangTableBody').innerHTML = `<tr><td colspan="6" style="color:red; text-align:center;">Error: ${err.message}</td></tr>`;
         });
     }
 
     function renderAdminBarang(data) {
         const tbody = document.getElementById('adminBarangTableBody');
         if (data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">Tidak ada data barang.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">Tidak ada data barang.</td></tr>`;
             return;
         }
 
@@ -951,6 +958,15 @@
             const bc = String(b.barcode || '').split(',').map(s => s.trim());
             const bc1 = bc[0] || '-';
             const bc2 = bc[1] || '-';
+            const statusVal = b.status_barang || "Aktif";
+            const badgeClass = statusVal === "Aktif" ? "badge-success" : "badge-secondary";
+            
+            let actionButtons = `<button class="btn btn-secondary btn-sm" onclick="editModalBarang('${b.id_barang}')">Edit</button>`;
+            
+            if (statusVal === "Nonaktif") {
+                actionButtons += `<button class="btn btn-sm" style="background:var(--danger-color);color:white;margin-left:4px;" onclick="hapusBarang('${b.id_barang}')" title="Hapus Permanen"><i class='bx bx-trash'></i></button>`;
+            }
+
             return `
             <tr class="main-row hoverable-row">
                 <td>
@@ -966,11 +982,23 @@
                     <div style="font-weight: 600;">${b.nama_barang}</div>
                 </td>
                 <td>
-                    <button class="btn btn-secondary btn-sm" onclick="editModalBarang('${b.id_barang}')">Edit</button>
-                    <button class="btn btn-sm" style="background:var(--danger-color);color:white;margin-left:4px;" onclick="hapusBarang('${b.id_barang}')" title="Hapus"><i class='bx bx-trash'></i></button>
+                    <span class="badge ${badgeClass}">${statusVal}</span>
+                </td>
+                <td style="white-space: nowrap;">
+                    ${actionButtons}
                 </td>
             </tr>
         `}).join('');
+    }
+
+    function ubahStatusBarangUI(idBarang, statusBaru) {
+        if (!confirm(`Anda yakin ingin mengubah status barang ini menjadi ${statusBaru}?`)) return;
+        
+        showToast("Menyimpan status...", "info");
+        BackendAPI.call('ubahStatusBarang', [idBarang, statusBaru]).then(() => {
+            showToast("Status berhasil diubah", "success");
+            loadMasterBarang();
+        }).catch(err => showToast(err.message, "error"));
     }
 
     document.getElementById('adminSearchBarang').addEventListener('input', function () {
@@ -989,8 +1017,7 @@
         document.getElementById('formBarangNama').value = "";
         document.getElementById('formBarangBarcode1').value = "";
         document.getElementById('formBarangBarcode2').value = "";
-
-
+        document.getElementById('formBarangStatus').value = "Aktif";
 
         document.getElementById('modalAdminBarang').classList.add('active');
     }
@@ -1004,7 +1031,7 @@
         const bc = String(b.barcode || '').split(',').map(s => s.trim());
         document.getElementById('formBarangBarcode1').value = bc[0] || "";
         document.getElementById('formBarangBarcode2').value = bc[1] || "";
-
+        document.getElementById('formBarangStatus').value = b.status_barang || "Aktif";
 
         document.getElementById('modalAdminBarang').classList.add('active');
     }
@@ -1022,6 +1049,7 @@
         let data = {
             nama_barang: document.getElementById('formBarangNama').value,
             barcode: barcodeCombined,
+            status_barang: document.getElementById('formBarangStatus').value,
             kategori: "-",
             merk: "-",
             isi_per_box: 1,
@@ -1032,7 +1060,6 @@
         if (idBarang) {
             const existingB = masterBarangDataAdmin.find(x => x.id_barang === idBarang);
             if (existingB) {
-                data.status_barang = existingB.status_barang;
                 data.kategori = existingB.kategori;
                 data.merk = existingB.merk;
                 data.isi_per_box = existingB.isi_per_box;
