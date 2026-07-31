@@ -187,6 +187,35 @@ function cetakInvoiceReturn(noReturn) {
 }
 
 /**
+ * Membuat PDF Struk Retur dalam format Base64 (untuk didownload/dibuka di tab baru)
+ */
+function generatePDFReturBase64(noReturn) {
+  const res = cetakInvoiceReturn(noReturn);
+  
+  const tanggal = new Date(res.header.tanggal).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' });
+  let selisihText = 'Rp 0';
+  let selisihColor = '#64748b';
+  if (Number(res.header.selisih_harga) < 0) {
+      selisihText = '(Refund) Rp ' + Math.abs(res.header.selisih_harga).toLocaleString('id-ID');
+      selisihColor = '#ef4444';
+  } else if (Number(res.header.selisih_harga) > 0) {
+      selisihText = '(Tambah) Rp ' + Number(res.header.selisih_harga).toLocaleString('id-ID');
+      selisihColor = '#10b981';
+  }
+
+  let html = "<html><head><style>body { font-family: 'Courier New', Courier, monospace; color: #0f172a; margin: 0; padding: 20px; } .container { max-width: 400px; margin: 0 auto; border: 1px dashed #cbd5e1; padding: 20px; border-radius: 12px; } .header { text-align: center; margin-bottom: 20px; border-bottom: 2px dashed #e2e8f0; padding-bottom: 16px; } .header h2 { margin: 0; font-size: 18px; font-weight: 800; } .header p { margin: 4px 0 0 0; font-size: 12px; color: #64748b; } .row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 8px; } .label { color: #64748b; } .value { font-weight: bold; } .items { border-top: 1px dashed #e2e8f0; border-bottom: 1px dashed #e2e8f0; padding: 12px 0; margin-bottom: 16px; } table { width: 100%; font-size: 12px; border-collapse: collapse; } .footer { text-align: center; margin-top: 24px; font-size: 11px; color: #64748b; }</style></head><body><div class='container'><div class='header'><h2>BUKTI RETUR BARANG</h2><p>PARTIX POS & INVENTORY</p></div><div class='row'><span class='label'>No. Retur</span><span class='value'>" + res.header.no_return + "</span></div><div class='row'><span class='label'>No. Invoice Asal</span><span class='value'>" + res.header.no_invoice + "</span></div><div class='row'><span class='label'>Waktu</span><span class='value'>" + tanggal + "</span></div><div class='row' style='margin-bottom: 16px;'><span class='label'>Kasir</span><span class='value'>" + res.header.kasir + "</span></div><div class='items'><div style='font-size: 11px; font-weight: bold; color: #64748b; margin-bottom: 8px;'>BARANG DIRETUR:</div><table>";
+  
+  res.detail.forEach(d => {
+      html += "<tr><td style='padding: 4px 0; font-weight: 600;'>" + d.nama_barang_direturn + "</td><td style='padding: 4px 0; text-align: right; white-space: nowrap;'>" + d.qty_return + "x</td></tr><tr><td colspan='2' style='padding-bottom: 8px; font-size: 11px; color: #ef4444; font-style: italic;'>&#x21B3; Kondisi: " + d.kondisi + " - " + d.alasan + "</td></tr>";
+  });
+
+  html += "</table></div><div style='font-size: 12px;'><div class='row'><span class='value'>PENYELESAIAN</span><span class='value' style='color: #2563eb;'>" + res.header.jenis_return + "</span></div><div class='row' style='padding: 8px; background: #f8fafc; border-radius: 6px;'><span class='value'>Total Selisih</span><span class='value' style='font-size: 14px; color: " + selisihColor + ";'>" + selisihText + "</span></div></div><div class='footer'>Terima kasih atas pengertian Anda.<br>Barang yang sudah diretur telah diproses.</div></div></body></html>";
+
+  const blob = Utilities.newBlob(html, MimeType.HTML, "Retur_" + noReturn + ".html").getAs(MimeType.PDF);
+  return Utilities.base64Encode(blob.getBytes());
+}
+
+/**
  * Mengambil daftar barang yang ada di sheet Barang_Return
  */
 function getListBarangReturn() {
@@ -195,13 +224,15 @@ function getListBarangReturn() {
   const listReturn = SheetService.readSheet("Barang_Return");
   const barangMaster = SheetService.readSheet("Barang");
   
-  return listReturn.map(r => {
-    const brg = barangMaster.find(b => b.id_barang === r.id_barang);
-    return {
-      ...r,
-      nama_barang: brg ? brg.nama_barang : r.id_barang
-    };
-  });
+  return listReturn
+    .filter(r => Number(r.qty_rusak) > 0)
+    .map(r => {
+      const brg = barangMaster.find(b => b.id_barang === r.id_barang);
+      return {
+        ...r,
+        nama_barang: brg ? brg.nama_barang : r.id_barang
+      };
+    });
 }
 
 /**
@@ -215,4 +246,96 @@ function getDaftarReturLengkap() {
   returns.sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime());
   
   return returns;
+}
+
+/**
+ * Mengambil histori retur ke supplier
+ */
+function getHistoriReturSupplier() {
+  requireRole(['Admin', 'Restocker', 'Kasir']);
+  
+  const history = SheetService.readSheet("Return_Supplier");
+  const barangMaster = SheetService.readSheet("Barang");
+  const supplierMaster = SheetService.readSheet("Supplier");
+  
+  const result = history.map(h => {
+    const brg = barangMaster.find(b => b.id_barang === h.id_barang);
+    const sup = supplierMaster.find(s => s.id_supplier === h.id_supplier);
+    return {
+      ...h,
+      nama_barang: brg ? brg.nama_barang : h.id_barang,
+      nama_supplier: sup ? sup.nama_supplier : h.id_supplier
+    };
+  });
+  
+  return result.sort((a, b) => new Date(b.tanggal_retur).getTime() - new Date(a.tanggal_retur).getTime());
+}
+
+/**
+ * Memproses barang karantina untuk dikembalikan ke supplier
+ */
+function prosesReturSupplier(payload) {
+  requireRole(['Admin', 'Restocker']);
+  
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  
+  try {
+    const { id_barang_return, id_supplier, qty_retur, harga_beli, no_invoice_supplier } = payload;
+    
+    // 1. Validasi qty
+    const brData = SheetService.findRow("Barang_Return", "id_barang_return", id_barang_return);
+    if (!brData) throw new Error("Data barang karantina tidak ditemukan!");
+    
+    if (Number(qty_retur) > Number(brData.qty_rusak)) {
+      throw new Error("Kuantitas retur melebihi sisa barang rusak di gudang!");
+    }
+    
+    // 2. Generate ID 
+    const timestamp = new Date().getTime();
+    const idReturSupplier = `RTS-${timestamp}`;
+    const tanggal = new Date().toISOString();
+    
+    // 3. Masukkan ke tabel Return_Supplier
+    SheetService.appendRow("Return_Supplier", {
+      id_return_supplier: idReturSupplier,
+      tanggal_retur: tanggal,
+      id_barang: brData.id_barang,
+      id_supplier: id_supplier,
+      qty_retur: qty_retur,
+      harga_beli: harga_beli,
+      no_invoice_supplier: no_invoice_supplier,
+      user: payload.user || "Admin"
+    });
+    
+    // 4. Kurangi qty_rusak di tabel Barang_Return
+    SheetService.updateRow("Barang_Return", id_barang_return, {
+      qty_rusak: Number(brData.qty_rusak) - Number(qty_retur)
+    });
+    
+    // 5. Catat di Stock_Movement (Pergerakan Barang Rusak Keluar dari Gudang)
+    SheetService.appendRow("Stock_Movement", {
+      id_movement: `MV-${timestamp}-RTS`,
+      tanggal: tanggal,
+      id_barang: brData.id_barang,
+      id_supplier: id_supplier,
+      tipe_pergerakan: "OUT_RETURN_SUPPLIER",
+      qty_box: 0,
+      qty_pcs: qty_retur,
+      harga_beli: harga_beli,
+      nomor_invoice_supplier: no_invoice_supplier,
+      batch_barang: "-",
+      alasan_perubahan: `Retur ke Supplier (Asal Invoice Customer: ${brData.no_invoice_asal})`,
+      user: payload.user || "Admin"
+    });
+    
+    try {
+      logActivity("CREATE", "Return_Supplier", `Retur barang ${brData.id_barang} ke Supplier ${id_supplier} sejumlah ${qty_retur} pcs`);
+    } catch (e) {}
+    
+    return { success: true, id_return_supplier: idReturSupplier };
+    
+  } finally {
+    lock.releaseLock();
+  }
 }

@@ -75,8 +75,46 @@
         }
 
         function printInvoiceReturn(noReturn) {
-            showToast('Fungsi cetak return sedang disiapkan', 'info');
+            showToast("Sedang menyiapkan dokumen PDF...", "info");
+            
+            // Mengubah cursor menjadi loading
+            document.body.style.cursor = 'wait';
+            
+            BackendAPI.call('generatePDFReturBase64', [noReturn]).then(base64 => {
+                document.body.style.cursor = 'default';
+                
+                // Konversi base64 ke blob PDF
+                const byteCharacters = atob(base64);
+                const byteNumbers = new Array(byteCharacters.length);
+                for (let i = 0; i < byteCharacters.length; i++) {
+                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                }
+                const byteArray = new Uint8Array(byteNumbers);
+                const blob = new Blob([byteArray], {type: 'application/pdf'});
+                
+                // Buat URL dan buka di tab baru
+                const blobUrl = URL.createObjectURL(blob);
+                const newWindow = window.open(blobUrl, '_blank');
+                
+                if (newWindow) {
+                    showToast("PDF berhasil dibuat dan dibuka di tab baru!", "success");
+                } else {
+                    showToast("Tab baru diblokir oleh browser. Mengunduh file...", "warning");
+                    // Fallback jika diblokir popup blocker
+                    const link = document.createElement('a');
+                    link.href = blobUrl;
+                    link.download = `Struk_Retur_${noReturn}.pdf`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+            }).catch(err => {
+                document.body.style.cursor = 'default';
+                showToast("Gagal membuat PDF: " + err.message, "error");
+            });
         }
+        
+        // Modal detail tak lagi dipakai, dibiarkan kosong atau dihapus.
 
         document.addEventListener('DOMContentLoaded', () => {
             const navItem = document.querySelector('li[data-target="return-list"]');
@@ -545,45 +583,162 @@
 <section id="view-return-supplier" class="view-section">
     <div class="view-header flex justify-between items-center mb-4">
         <h2 class="view-title mb-0">
-            <i class='bx bx-archive-out'></i> Barang Return (Cacat / Rusak)
+            <i class='bx bx-archive-out'></i> Retur ke Supplier
         </h2>
-        <button class="btn btn-outline" onclick="loadListBarangReturn()">
-            <i class='bx bx-refresh'></i> Refresh Data
+        <div class="flex gap-2">
+            <button class="btn btn-outline" onclick="loadListBarangReturn()">
+                <i class='bx bx-refresh'></i> Refresh
+            </button>
+        </div>
+    </div>
+
+    <!-- Tabs Navigation -->
+    <div class="flex gap-4 mb-4" style="border-bottom: 1px solid var(--border-color);">
+        <button id="tabKarantina" class="tab-btn active" onclick="switchReturTab('karantina')" style="padding: 10px 16px; border:none; background:none; font-weight:600; color:var(--primary-color); border-bottom: 2px solid var(--primary-color); cursor:pointer;">
+            Daftar Barang Karantina
+        </button>
+        <button id="tabHistoriRetur" class="tab-btn" onclick="switchReturTab('histori')" style="padding: 10px 16px; border:none; background:none; font-weight:600; color:var(--text-muted); cursor:pointer;">
+            Histori Retur Supplier
         </button>
     </div>
 
-    <div class="glass-card" style="padding: 24px;">
+    <!-- Tab 1: Karantina -->
+    <div id="contentKarantina" class="glass-card" style="padding: 24px; display: block;">
         <div style="overflow-x: auto;">
             <table class="table table-hover" style="font-size: 11px;">
                 <thead>
                     <tr>
-                        <th style="min-width: 100px;">ID Return</th>
-                        <th style="min-width: 120px;">Tanggal</th>
-                        <th style="min-width: 120px;">Invoice Asal</th>
+                        <th style="min-width: 100px;">ID Karantina</th>
+                        <th style="min-width: 120px;">Tanggal Karantina</th>
                         <th style="min-width: 180px;">Nama Barang</th>
                         <th style="min-width: 80px;">Qty Rusak</th>
-                        <th style="min-width: 150px;">Alasan</th>
-                        <th style="min-width: 120px;">Kasir/User</th>
+                        <th style="min-width: 150px;">Alasan / Keterangan</th>
+                        <th style="min-width: 100px; text-align: center;">Aksi</th>
                     </tr>
                 </thead>
                 <tbody id="tbodyBarangReturn">
-                    <tr><td colspan="7" style="text-align: center; color: var(--text-muted);">Memuat data...</td></tr>
+                    <tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Memuat data...</td></tr>
                 </tbody>
             </table>
         </div>
     </div>
 
+    <!-- Tab 2: Histori Retur -->
+    <div id="contentHistoriRetur" class="glass-card" style="padding: 24px; display: none;">
+        <div style="overflow-x: auto;">
+            <table class="table table-hover" style="font-size: 11px;">
+                <thead>
+                    <tr>
+                        <th style="min-width: 120px;">Tanggal Retur</th>
+                        <th style="min-width: 100px;">ID Retur</th>
+                        <th style="min-width: 180px;">Supplier Tujuan</th>
+                        <th style="min-width: 180px;">Barang Diretur</th>
+                        <th style="min-width: 80px;">Qty</th>
+                        <th style="min-width: 120px;">Harga Beli</th>
+                        <th style="min-width: 150px;">No Invoice Supplier</th>
+                        <th style="min-width: 100px;">User</th>
+                    </tr>
+                </thead>
+                <tbody id="tbodyHistoriRetur">
+                    <tr><td colspan="8" style="text-align: center; color: var(--text-muted);">Memuat histori...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal Detail Return (Cetak) -->
+    <div id="modalDetailReturn" class="modal-overlay">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3>Detail Retur (Struk)</h3>
+                <button class="modal-close" onclick="closeDetailReturn()"><i class='bx bx-x'></i></button>
+            </div>
+            <div class="modal-body" id="detailReturnBody" style="padding: 24px;">
+                Memuat detail...
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Retur ke Supplier -->
+    <div id="modalReturSupplier" class="modal-overlay">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3 style="font-size: 16px; font-weight: 600;">Proses Retur ke Supplier</h3>
+                <button class="modal-close" onclick="closeModalRetur()"><i class='bx bx-x'></i></button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="input-group">
+                    <label>Barang yang Diretur</label>
+                    <input type="text" id="rsNamaBarang" class="input-control" disabled style="background-color: var(--bg-color);">
+                    <input type="hidden" id="rsIdBarangReturn">
+                    <input type="hidden" id="rsMaxQty">
+                </div>
+                
+                <div class="input-group">
+                    <label>Qty Diretur (Maks: <span id="rsLabelMaxQty" style="font-weight: bold; color: var(--danger-color);">0</span>)</label>
+                    <input type="number" id="rsQty" class="input-control" min="1" value="1">
+                </div>
+                
+                <div class="input-group">
+                    <label>Supplier Tujuan</label>
+                    <select id="rsSupplier" class="input-control" required>
+                        <option value="">-- Pilih Supplier --</option>
+                    </select>
+                </div>
+                
+                <div class="input-group">
+                    <label>Nomor Invoice Pembelian (Dari Supplier)</label>
+                    <input type="text" id="rsNoInvoice" class="input-control" placeholder="Contoh: INV-SUP-001" required>
+                </div>
+                
+                <div class="input-group mb-4">
+                    <label>Harga Beli Satuan (Modal)</label>
+                    <div style="position: relative;">
+                        <span style="position: absolute; left: 12px; top: 10px; color: var(--text-muted); font-weight: 500;">Rp</span>
+                        <input type="number" id="rsHargaBeli" class="input-control" placeholder="0" style="padding-left: 36px;" required>
+                    </div>
+                </div>
+                
+                <div class="flex gap-2 justify-end mt-4">
+                    <button type="button" class="btn btn-outline" onclick="closeModalRetur()">Batal</button>
+                    <button type="button" class="btn btn-primary" onclick="submitReturSupplier(this)"><i class='bx bx-send'></i> Kirim Retur</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
+        // Tab switching
+        function switchReturTab(tab) {
+            document.getElementById('tabKarantina').style = "padding: 10px 16px; border:none; background:none; font-weight:600; color:var(--text-muted); cursor:pointer;";
+            document.getElementById('tabHistoriRetur').style = "padding: 10px 16px; border:none; background:none; font-weight:600; color:var(--text-muted); cursor:pointer;";
+            
+            document.getElementById('contentKarantina').style.display = 'none';
+            document.getElementById('contentHistoriRetur').style.display = 'none';
+            
+            if (tab === 'karantina') {
+                document.getElementById('tabKarantina').style = "padding: 10px 16px; border:none; background:none; font-weight:600; color:var(--primary-color); border-bottom: 2px solid var(--primary-color); cursor:pointer;";
+                document.getElementById('contentKarantina').style.display = 'block';
+                loadListBarangReturn();
+            } else {
+                document.getElementById('tabHistoriRetur').style = "padding: 10px 16px; border:none; background:none; font-weight:600; color:var(--primary-color); border-bottom: 2px solid var(--primary-color); cursor:pointer;";
+                document.getElementById('contentHistoriRetur').style.display = 'block';
+                loadHistoriReturSupplier();
+            }
+        }
+
+        // Load Tab 1
         function loadListBarangReturn() {
             const tbody = document.getElementById('tbodyBarangReturn');
             if (!tbody) return;
             
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted);"><i class="bx bx-loader-alt bx-spin"></i> Memuat data...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);"><i class="bx bx-loader-alt bx-spin"></i> Memuat data...</td></tr>';
             
             BackendAPI.call('getListBarangReturn', [])
                 .then(res => {
                     if (res.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">Belum ada data barang return/cacat.</td></tr>';
+                        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Tidak ada barang karantina yang menunggu diretur.</td></tr>';
                         return;
                     }
                     
@@ -591,26 +746,129 @@
                         <tr>
                             <td style="font-size: 13px; color: var(--text-muted);">${r.id_barang_return}</td>
                             <td>${new Date(r.tanggal_terima).toLocaleDateString('id-ID')}</td>
-                            <td><span style="background: #f1f5f9; padding: 4px 8px; border-radius: 4px; font-size: 13px; font-weight: 500;">${r.no_invoice_asal}</span></td>
                             <td style="font-weight: 500;">${r.nama_barang}</td>
                             <td><b style="color: var(--danger-color);">${r.qty_rusak}</b></td>
-                            <td>${r.alasan}</td>
-                            <td style="font-size: 13px;">${r.user_penerima || '-'}</td>
+                            <td>${r.alasan} (Dari: ${r.no_invoice_asal})</td>
+                            <td style="text-align: center;">
+                                <button class="btn btn-primary" style="padding: 4px 12px; font-size: 11px;" 
+                                    onclick="openModalRetur('${r.id_barang_return}', '${r.nama_barang}', ${r.qty_rusak})">
+                                    Proses Retur
+                                </button>
+                            </td>
                         </tr>
                     `).join('');
                 })
                 .catch(err => {
-                    tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--danger-color);">Gagal memuat data: ${err.message}</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--danger-color);">Gagal memuat data: ${err.message}</td></tr>`;
+                });
+        }
+        
+        // Load Tab 2
+        function loadHistoriReturSupplier() {
+            const tbody = document.getElementById('tbodyHistoriRetur');
+            if (!tbody) return;
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted);"><i class="bx bx-loader-alt bx-spin"></i> Memuat histori...</td></tr>';
+            
+            BackendAPI.call('getHistoriReturSupplier', [])
+                .then(res => {
+                    if (res.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted);">Belum ada histori retur ke supplier.</td></tr>';
+                        return;
+                    }
+                    
+                    tbody.innerHTML = res.map(h => `
+                        <tr>
+                            <td>${new Date(h.tanggal_retur).toLocaleDateString('id-ID')}</td>
+                            <td style="font-size: 11px; color: var(--text-muted);">${h.id_return_supplier}</td>
+                            <td style="font-weight: 500;">${h.nama_supplier}</td>
+                            <td>${h.nama_barang}</td>
+                            <td><b>${h.qty_retur}</b></td>
+                            <td>Rp ${Number(h.harga_beli).toLocaleString('id-ID')}</td>
+                            <td><span style="background: #f1f5f9; padding: 4px 8px; border-radius: 4px; font-weight:500;">${h.no_invoice_supplier}</span></td>
+                            <td>${h.user}</td>
+                        </tr>
+                    `).join('');
+                })
+                .catch(err => {
+                    tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--danger-color);">Gagal memuat data: ${err.message}</td></tr>`;
+                });
+        }
+
+        // Modal Logic
+        function openModalRetur(id_barang_return, nama_barang, max_qty) {
+            document.getElementById('rsIdBarangReturn').value = id_barang_return;
+            document.getElementById('rsNamaBarang').value = nama_barang;
+            document.getElementById('rsMaxQty').value = max_qty;
+            document.getElementById('rsLabelMaxQty').innerText = max_qty;
+            document.getElementById('rsQty').max = max_qty;
+            document.getElementById('rsQty').value = max_qty;
+            
+            document.getElementById('rsNoInvoice').value = '';
+            document.getElementById('rsHargaBeli').value = '';
+            
+            // Populate suppliers
+            BackendAPI.call('getSuppliers', [])
+                .then(sups => {
+                    const sel = document.getElementById('rsSupplier');
+                    sel.innerHTML = '<option value="">-- Pilih Supplier --</option>' + 
+                        sups.filter(s => s.status_supplier === 'Aktif').map(s => `<option value="${s.id_supplier}">${s.nama_supplier}</option>`).join('');
+                });
+                
+            document.getElementById('modalReturSupplier').classList.add('active');
+        }
+        
+        function closeModalRetur() {
+            document.getElementById('modalReturSupplier').classList.remove('active');
+        }
+        
+        function submitReturSupplier(btn) {
+            const payload = {
+                id_barang_return: document.getElementById('rsIdBarangReturn').value,
+                qty_retur: document.getElementById('rsQty').value,
+                id_supplier: document.getElementById('rsSupplier').value,
+                no_invoice_supplier: document.getElementById('rsNoInvoice').value,
+                harga_beli: document.getElementById('rsHargaBeli').value,
+                user: (typeof AppState !== 'undefined' && AppState.user) ? AppState.user.nama : "Admin"
+            };
+            
+            if (!payload.id_supplier) return showToast("Pilih supplier tujuan!", "error");
+            if (!payload.no_invoice_supplier) return showToast("Masukkan nomor invoice!", "error");
+            if (!payload.harga_beli || payload.harga_beli <= 0) return showToast("Masukkan harga beli!", "error");
+            if (Number(payload.qty_retur) > Number(document.getElementById('rsMaxQty').value)) return showToast("Qty melebihi batas maksimal!", "error");
+            
+            btn.disabled = true;
+            btn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> Memproses...";
+            
+            BackendAPI.call('prosesReturSupplier', [payload])
+                .then(res => {
+                    showToast("Retur ke supplier berhasil dicatat!", "success");
+                    closeModalRetur();
+                    loadListBarangReturn();
+                })
+                .catch(err => showToast(err.message, "error"))
+                .finally(() => {
+                    btn.disabled = false;
+                    btn.innerHTML = "Kirim Retur";
                 });
         }
 
         // Auto-load when this view becomes active
         document.addEventListener('DOMContentLoaded', () => {
-            // Find the nav item
+            // Pindahkan modal ke luar dari root element (ke body) agar overlay full screen
+            const modalReturSupplier = document.getElementById('modalReturSupplier');
+            if (modalReturSupplier) {
+                document.body.appendChild(modalReturSupplier);
+            }
+            
+            const modalDetailReturn = document.getElementById('modalDetailReturn');
+            if (modalDetailReturn) {
+                document.body.appendChild(modalDetailReturn);
+            }
+
             const navItem = document.querySelector('li[data-target="return-supplier"]');
             if (navItem) {
                 navItem.addEventListener('click', () => {
-                    setTimeout(loadListBarangReturn, 100);
+                    setTimeout(() => switchReturTab('karantina'), 100);
                 });
             }
         });

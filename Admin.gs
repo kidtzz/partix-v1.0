@@ -594,6 +594,15 @@ function getPengaturanDiskon() {
   }
 }
 
+// ==========================================
+// SUPPLIER
+// ==========================================
+
+function getSuppliers() {
+  requireRole(['Admin', 'Restocker', 'Kasir']);
+  return SheetService.readSheet("Supplier");
+}
+
 function updatePengaturanDiskon(arg1, arg2, arg3, arg4, arg5, arg6) {
   requireRole(['Admin']);
   
