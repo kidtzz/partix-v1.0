@@ -675,7 +675,7 @@
         BackendAPI.call('updateStatusBarang', [idBarang, statusBaru])
             .then(() => {
                 showToast(`Status berhasil diubah menjadi ${statusBaru}`, 'success');
-                loadStockData(); // Refresh table
+                initStockView(); // Refresh table
             })
             .catch(err => showToast(err.message, 'error'));
     }
@@ -766,7 +766,7 @@
             .then(() => {
                 showToast('Setup stok barang berhasil disimpan', 'success');
                 closeStockModal();
-                loadStockData(); // Refresh table
+                initStockView(); // Refresh table
             })
             .catch(err => showToast(err.message, 'error'))
             .finally(() => {

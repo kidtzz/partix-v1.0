@@ -246,6 +246,56 @@ function getHistoriTransaksiAdmin() {
 }
 
 // ==========================================
+// PENGATURAN HARGA
+// ==========================================
+
+function getHargaMasterList() {
+  requireRole(['Admin']);
+  const barangList = SheetService.readSheet("Barang");
+  const hargaList = SheetService.readSheet("Harga");
+  const diskon = getPengaturanDiskon();
+  
+  const bsList = SheetService.readSheet("Barang_Supplier");
+  
+  return barangList
+    .map(b => {
+    const allSuppliers = bsList.filter(bs => bs.id_barang === b.id_barang);
+    const stok = allSuppliers.reduce((sum, bs) => sum + (Number(bs.stok_saat_ini) || 0), 0);
+    const supplierPrices = allSuppliers.map(bs => Number(bs.harga_beli));
+    const maxHargaBeli = supplierPrices.length > 0 ? Math.max(...supplierPrices) : 0;
+
+    const itemPrices = hargaList.filter(h => h.id_barang === b.id_barang);
+    let h = itemPrices.find(h => h.status_harga === "Aktif");
+    if (!h && itemPrices.length > 0) {
+      h = itemPrices[itemPrices.length - 1];
+    }
+    
+    const regPrice = h ? Number(h.harga_regular) : 0;
+    const statusHarga = h ? (h.status_harga || "Nonaktif") : "Nonaktif";
+
+    let mappedHarga = {
+      "Regular": regPrice,
+      "Member": Math.floor((regPrice * (1 - (diskon.DISKON_MEMBER / 100))) / 100) * 100,
+      "Langganan": Math.floor((regPrice * (1 - (diskon.DISKON_LANGGANAN / 100))) / 100) * 100,
+      "Bengkel": Math.floor((regPrice * (1 - (diskon.DISKON_BENGKEL / 100))) / 100) * 100,
+      "Teman": Math.floor((regPrice * (1 - (diskon.DISKON_TEMAN / 100))) / 100) * 100,
+      "Grosir": Math.floor((regPrice * (1 - (diskon.DISKON_GROSIR / 100))) / 100) * 100
+    };
+    
+    return {
+      id_barang: b.id_barang,
+      nama_barang: b.nama_barang,
+      stok_saat_ini: stok,
+      barcode1: b.barcode1,
+      barcode2: b.barcode2,
+      harga_modal: maxHargaBeli,
+      harga: mappedHarga,
+      status_harga: statusHarga
+    };
+  });
+}
+
+// ==========================================
 // SUPPLIER
 // ==========================================
 

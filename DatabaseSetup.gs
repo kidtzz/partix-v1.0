@@ -131,11 +131,13 @@ function installDatabase(existingSheetId) {
 
   // 4. Barang
   const barangSheet = ss.getSheetByName("Barang");
-  barangSheet.appendRow(["BRG-001", "10001", "11111", "Oli Pertamina Enduro 4T", "Pertamina", "Oli", "Aktif"]);
-  barangSheet.appendRow(["BRG-002", "10002", "22222", "Busi NGK C7HSA", "NGK", "Sparepart", "Aktif"]);
-  barangSheet.appendRow(["BRG-003", "10003", "33333", "Kampas Rem Depan Supra", "Honda", "Sparepart", "Aktif"]);
-  barangSheet.appendRow(["BRG-004", "10004", "44444", "Ban IRC 90/90-14", "IRC", "Ban", "Aktif"]);
-  barangSheet.appendRow(["BRG-005", "10005", "55555", "Lampu Depan Vario", "Honda", "Aksesoris", "Aktif"]);
+  barangSheet.appendRow(["BRG-001", "899123456001", "899123456011", "Oli Pertamina Enduro 4T", "Pertamina", "Oli", "Aktif"]);
+  barangSheet.appendRow(["BRG-002", "899123456002", "899123456012", "Busi NGK C7HSA", "NGK", "Sparepart", "Aktif"]);
+  barangSheet.appendRow(["BRG-003", "899123456003", "899123456013", "Kampas Rem Depan Supra", "Honda", "Sparepart", "Aktif"]);
+  barangSheet.appendRow(["BRG-004", "899123456004", "899123456014", "Ban IRC 90/90-14", "IRC", "Ban", "Aktif"]);
+  barangSheet.appendRow(["BRG-005", "899123456005", "899123456015", "Lampu Depan Vario", "Honda", "Aksesoris", "Aktif"]);
+  barangSheet.appendRow(["BRG-006", "899123456006", "899123456016", "Spion Standar Yamaha", "Yamaha", "Aksesoris", "Non Aktif"]);
+  barangSheet.appendRow(["BRG-007", "899123456007", "899123456017", "Aki Yuasa YTZ5S", "Yuasa", "Aki", "Non Aktif"]);
 
   // 5. Barang_Supplier
   const bsSheet = ss.getSheetByName("Barang_Supplier");
@@ -145,6 +147,8 @@ function installDatabase(existingSheetId) {
   bsSheet.appendRow(["BS-003", "BRG-003", "SUP-001", 20000, 0, "SET", 1, 15, 5, "Rak C3", "AST-REM", true, "Aktif", today]);
   bsSheet.appendRow(["BS-004", "BRG-004", "SUP-003", 150000, 0, "PCS", 1, 30, 5, "Rak D4", "SJ-BAN", true, "Aktif", today]);
   bsSheet.appendRow(["BS-005", "BRG-005", "SUP-004", 45000, 0, "PCS", 1, 10, 2, "Rak E5", "IP-LAMP", true, "Aktif", today]);
+  bsSheet.appendRow(["BS-006", "BRG-006", "SUP-002", 25000, 0, "SET", 1, 0, 5, "Rak F1", "MM-SPION", true, "Non Aktif", today]);
+  bsSheet.appendRow(["BS-007", "BRG-007", "SUP-005", 180000, 0, "PCS", 1, 0, 2, "Rak G2", "BM-AKI", true, "Non Aktif", today]);
 
   // 6. Harga
   const hargaSheet = ss.getSheetByName("Harga");
@@ -153,6 +157,8 @@ function installDatabase(existingSheetId) {
   hargaSheet.appendRow(["HRG-003", "BRG-003", 30000, 28000, 25000, today, "Aktif", "Awal Setup"]);
   hargaSheet.appendRow(["HRG-004", "BRG-004", 180000, 175000, 170000, today, "Aktif", "Awal Setup"]);
   hargaSheet.appendRow(["HRG-005", "BRG-005", 60000, 55000, 50000, today, "Aktif", "Awal Setup"]);
+  hargaSheet.appendRow(["HRG-006", "BRG-006", 35000, 33000, 30000, today, "Non Aktif", "Awal Setup"]);
+  hargaSheet.appendRow(["HRG-007", "BRG-007", 220000, 210000, 200000, today, "Non Aktif", "Awal Setup"]);
   
   // 7. Stock_Movement
   const smSheet = ss.getSheetByName("Stock_Movement");
@@ -187,7 +193,7 @@ function installDatabase(existingSheetId) {
   retSheet.appendRow(["RET-003", "INV-003", today, "kasir2", "Tukar Barang Sama", 0, "Rusak", "Selesai"]);
   retSheet.appendRow(["RET-004", "INV-004", today, "kasir2", "Refund Uang", -40000, "Lainnya", "Selesai"]);
   retSheet.appendRow(["RET-005", "INV-005", today, "kasir1", "Tukar Barang Sama", 0, "Cacat Pabrik", "Selesai"]);
-
+  retSheet.appendRow(["RET-006", "INV-004", today, "kasir2", "Tukar Tambah", 35000, "Salah Beli", "Selesai"]);
   const rdSheet = ss.getSheetByName("Return_Detail");
   // id_detail, no_return, id_barang_direturn, qty_direturn, id_barang_pengganti, qty_pengganti
   rdSheet.appendRow(["RD-001", "RET-001", "BRG-005", 1, "BRG-005", 1]);
@@ -195,7 +201,7 @@ function installDatabase(existingSheetId) {
   rdSheet.appendRow(["RD-003", "RET-003", "BRG-005", 1, "BRG-005", 1]);
   rdSheet.appendRow(["RD-004", "RET-004", "BRG-001", 1, "", 0]);
   rdSheet.appendRow(["RD-005", "RET-005", "BRG-001", 1, "BRG-001", 1]);
-
+  rdSheet.appendRow(["RD-006", "RET-006", "BRG-003", 1, "BRG-005", 1]); // Harga BRG-003 = 25.000, BRG-005 = 60.000. Selisih = 35.000
   // 11. Barang_Return (Barang cacat/rusak di inventory gudang)
   // Schema: id_barang_return, tanggal_terima, no_invoice_asal, id_barang, qty_rusak, alasan, user_penerima
   const brSheet = ss.getSheetByName("Barang_Return");
@@ -204,7 +210,7 @@ function installDatabase(existingSheetId) {
   brSheet.appendRow(["RTN-B003", today, "INV-003", "BRG-005", 1, "Rusak fisik", "kasir2"]);
   brSheet.appendRow(["RTN-B004", today, "INV-004", "BRG-001", 1, "Kemasan bocor", "kasir2"]);
   brSheet.appendRow(["RTN-B005", today, "INV-005", "BRG-001", 1, "Cacat Pabrik", "kasir1"]);
-  
+  brSheet.appendRow(["RTN-B006", today, "INV-004", "BRG-003", 1, "Salah Beli (Tidak Rusak)", "kasir2"]);
   Logger.log("SETUP DATABASE UTAMA SELESAI!");
   
   // Otomatis jalankan setup Log DB juga agar user tidak bingung

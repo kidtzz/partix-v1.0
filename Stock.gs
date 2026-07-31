@@ -343,7 +343,7 @@ function updateStokBarang(idBarang, data) {
  * Update atau tambah harga jual
  * Sesuai PRD v1.1, satu row mencakup 3 harga (Regular, Langganan, Teman)
  */
-function updateHargaJual(idBarang, hargaRegular, keteranganPerubahan = "") {
+function updateHargaJual(idBarang, hargaRegular, keteranganPerubahan = "", statusHarga = "Aktif") {
   requireRole(['Admin']);
   
   const lock = LockService.getScriptLock();
@@ -387,7 +387,7 @@ function updateHargaJual(idBarang, hargaRegular, keteranganPerubahan = "") {
       harga_langganan: finalLangganan,
       harga_teman: finalTeman,
       tanggal_berlaku: new Date().toISOString(),
-      status_harga: "Aktif",
+      status_harga: statusHarga,
       keterangan_perubahan: keteranganPerubahan
     });
     

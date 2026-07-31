@@ -82,6 +82,24 @@ const SheetService = (function() {
   }
 
   /**
+   * Mencari semua baris yang cocok dengan kriteria.
+   * @param {string} sheetName Nama sheet
+   * @param {string} columnName Nama kolom yang akan dicari
+   * @param {any} value Nilai yang dicari
+   * @returns {Array<Object>}
+   */
+  function findRows(sheetName, columnName, value) {
+    const data = readSheet(sheetName);
+    const results = [];
+    for (let i = 0; i < data.length; i++) {
+      if (data[i][columnName] == value) {
+        results.push(data[i]);
+      }
+    }
+    return results;
+  }
+
+  /**
    * Mengupdate baris yang sudah ada berdasarkan Primary Key (kolom pertama).
    * @param {string} sheetName Nama sheet
    * @param {any} primaryKeyValue Nilai ID/PK (selalu kolom pertama berdasarkan skema)
@@ -155,6 +173,7 @@ const SheetService = (function() {
     appendRow: appendRow,
     updateRow: updateRow,
     findRow: findRow,
+    findRows: findRows,
     deleteRow: deleteRow
   };
 })();

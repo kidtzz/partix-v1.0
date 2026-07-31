@@ -1,3 +1,94 @@
+<section id="view-return-list" class="view-section">
+    <div class="view-header flex justify-between items-center mb-4">
+        <h2 class="view-title mb-0">
+            <i class='bx bx-list-ul'></i> Daftar Histori Retur
+        </h2>
+        <button class="btn btn-outline" onclick="loadHistoriReturLengkap()">
+            <i class='bx bx-refresh'></i> Refresh Data
+        </button>
+    </div>
+
+    <div class="glass-card" style="padding: 24px;">
+        <div style="overflow-x: auto;">
+            <table class="table table-hover" style="font-size: 11px;">
+                <thead>
+                    <tr>
+                        <th style="min-width: 120px;">No Return</th>
+                        <th style="min-width: 120px;">Tanggal</th>
+                        <th style="min-width: 120px;">Invoice Asal</th>
+                        <th style="min-width: 150px;">Kasir</th>
+                        <th style="min-width: 150px;">Jenis Penyelesaian</th>
+                        <th style="min-width: 120px;">Total Refund/Selisih</th>
+                        <th style="min-width: 80px;">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="tbodyReturnList">
+                    <tr><td colspan="7" style="text-align: center; color: var(--text-muted);">Memuat data...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function loadHistoriReturLengkap() {
+            const tbody = document.getElementById('tbodyReturnList');
+            if (!tbody) return;
+            
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted);"><i class="bx bx-loader-alt bx-spin"></i> Memuat data...</td></tr>';
+            
+            BackendAPI.call('getDaftarReturLengkap', [])
+                .then(res => {
+                    if (res.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">Belum ada histori retur.</td></tr>';
+                        return;
+                    }
+                    
+                    tbody.innerHTML = res.map(r => {
+                        const selisih = Number(r.selisih_harga) || 0;
+                        let selisihHtml = '-';
+                        if (selisih < 0) {
+                            selisihHtml = `<span style="color: var(--danger-color); font-weight: 600;">Refund: ${formatRupiah(Math.abs(selisih))}</span>`;
+                        } else if (selisih > 0) {
+                            selisihHtml = `<span style="color: var(--success-color); font-weight: 600;">Nambah: ${formatRupiah(selisih)}</span>`;
+                        }
+                        
+                        return `
+                        <tr>
+                            <td style="font-size: 13px; font-weight: 600; color: var(--primary-color);">${r.no_return}</td>
+                            <td>${new Date(r.tanggal).toLocaleString('id-ID')}</td>
+                            <td><span style="background: #f1f5f9; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 500;">${r.no_invoice}</span></td>
+                            <td>${r.kasir}</td>
+                            <td><span class="badge badge-secondary">${r.jenis_return}</span></td>
+                            <td>${selisihHtml}</td>
+                            <td>
+                                <button class="btn btn-outline btn-sm" onclick="printInvoiceReturn('${r.no_return}')" style="padding: 4px 8px;">
+                                    <i class='bx bx-printer'></i> Cetak
+                                </button>
+                            </td>
+                        </tr>
+                        `;
+                    }).join('');
+                })
+                .catch(err => {
+                    tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--danger-color);">Gagal memuat data: ${err.message}</td></tr>`;
+                });
+        }
+
+        function printInvoiceReturn(noReturn) {
+            showToast('Fungsi cetak return sedang disiapkan', 'info');
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const navItem = document.querySelector('li[data-target="return-list"]');
+            if (navItem) {
+                navItem.addEventListener('click', () => {
+                    setTimeout(loadHistoriReturLengkap, 100);
+                });
+            }
+        });
+    </script>
+</section>
+
 <section id="view-return" class="view-section">
 <div class="view-header flex justify-between items-center mb-4">
     <h2 class="view-title mb-0">
@@ -169,11 +260,11 @@
             <div style="border: 1px solid var(--border-solid); border-radius: var(--radius-md); padding: 16px;">
                 <div class="flex justify-between items-center mb-2">
                     <div>
-                        <div style="font-weight: 600;">${d.nama_barang_snapshot}</div>
-                        <div style="font-size: 13px; color: var(--text-muted);">Dibeli: ${d.qty} PCS @ ${formatRupiah(d.harga_satuan_snapshot)}</div>
+                        <div style="font-weight: 600;">${d.nama_barang}</div>
+                        <div style="font-size: 13px; color: var(--text-muted);">Dibeli: ${d.qty} PCS @ ${formatRupiah(d.harga_satuan)}</div>
                     </div>
                     <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                        <input type="checkbox" style="width: 18px; height: 18px;" onchange="toggleReturnForm('${index}', this.checked, '${d.id_barang}', ${d.qty}, ${d.harga_satuan_snapshot})">
+                        <input type="checkbox" style="width: 18px; height: 18px;" onchange="toggleReturnForm('${index}', this.checked, '${d.id_barang}', ${d.qty}, ${d.harga_satuan})">
                         <span style="font-size: 14px; font-weight: 500;">Pilih Return</span>
                     </label>
                 </div>
@@ -188,6 +279,7 @@
                             <label>Jenis Penyelesaian</label>
                             <select class="input-control" id="jenisRet_${index}" onchange="updateReturnItem('${index}')">
                                 <option value="Tukar Barang Sama">Tukar Barang Sama (Ganti Baru)</option>
+                                <option value="Tukar Barang Lain">Tukar Barang Lain (Tukar Tambah)</option>
                                 <option value="Refund Uang">Refund Uang Tunai</option>
                             </select>
                         </div>
@@ -199,6 +291,30 @@
                                 <option value="Salah Beli">Salah Beli</option>
                                 <option value="Lainnya">Lainnya</option>
                             </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Area Tukar Barang Lain -->
+                    <div id="tukarLainArea_${index}" style="display: none; margin-top: 16px; padding: 16px; background: #fff; border: 1px dashed var(--primary-color); border-radius: var(--radius-md);">
+                        <div style="font-weight: 600; font-size: 13px; margin-bottom: 8px; color: var(--primary-color);">Pilih Barang Pengganti</div>
+                        <div class="input-group mb-2">
+                            <div class="search-box">
+                                <i class='bx bx-search'></i>
+                                <input type="text" class="input-control" id="searchBarang_${index}" placeholder="Ketik nama atau scan barcode barang pengganti..." oninput="searchPengganti('${index}')">
+                            </div>
+                            <div id="searchResult_${index}" style="position: absolute; width: 100%; max-height: 200px; overflow-y: auto; background: white; border: 1px solid #e2e8f0; border-radius: 4px; z-index: 10; display: none; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);"></div>
+                        </div>
+                        <div id="selectedPenggantiInfo_${index}" style="display: none; font-size: 13px;">
+                            <div class="flex justify-between items-center mb-2">
+                                <div>
+                                    <div style="font-weight: 600;" id="namaPengganti_${index}">-</div>
+                                    <div style="color: var(--text-muted);">Harga: <span id="hargaPengganti_${index}">-</span> | Stok: <span id="stokPengganti_${index}">-</span></div>
+                                </div>
+                                <div style="width: 80px;">
+                                    <input type="number" class="input-control" id="qtyPengganti_${index}" min="1" value="1" onchange="hitungSelisih('${index}')">
+                                </div>
+                            </div>
+                            <div id="selisihInfo_${index}" style="margin-top: 8px; padding: 8px; border-radius: 4px; text-align: center; font-weight: 600;"></div>
                         </div>
                     </div>
                 </div>
@@ -224,8 +340,14 @@
                 qty_return: Number(document.getElementById(`qtyRet_${index}`).value),
                 jenis: document.getElementById(`jenisRet_${index}`).value,
                 alasan_return: document.getElementById(`alasanRet_${index}`).value,
-                harga_satuan: hargaSatuan
+                harga_satuan: hargaSatuan,
+                // untuk tukar tambah
+                id_barang_pengganti: null,
+                qty_pengganti: 0,
+                harga_pengganti: 0,
+                selisih_harga: 0
             };
+            updateReturnItem(index);
         } else {
             delete currentReturnItems[index];
         }
@@ -234,8 +356,114 @@
     function updateReturnItem(index) {
         if (currentReturnItems[index]) {
             currentReturnItems[index].qty_return = Number(document.getElementById(`qtyRet_${index}`).value);
-            currentReturnItems[index].jenis = document.getElementById(`jenisRet_${index}`).value;
+            const jenis = document.getElementById(`jenisRet_${index}`).value;
+            currentReturnItems[index].jenis = jenis;
             currentReturnItems[index].alasan_return = document.getElementById(`alasanRet_${index}`).value;
+            
+            const areaLain = document.getElementById(`tukarLainArea_${index}`);
+            if (jenis === "Tukar Barang Lain") {
+                areaLain.style.display = "block";
+            } else {
+                areaLain.style.display = "none";
+                currentReturnItems[index].id_barang_pengganti = null;
+                currentReturnItems[index].selisih_harga = 0;
+            }
+            hitungSelisih(index);
+        }
+    }
+    
+    // ==========================================
+    // LOGIKA TUKAR TAMBAH (Pencarian Barang)
+    // ==========================================
+    let searchTimeoutRet = null;
+    function searchPengganti(index) {
+        clearTimeout(searchTimeoutRet);
+        const query = document.getElementById(`searchBarang_${index}`).value.trim();
+        const resDiv = document.getElementById(`searchResult_${index}`);
+        
+        if (query.length < 2) {
+            resDiv.style.display = 'none';
+            return;
+        }
+        
+        searchTimeoutRet = setTimeout(() => {
+            BackendAPI.call('cariBarangAktif', [query])
+                .then(res => {
+                    if (res.length === 0) {
+                        resDiv.innerHTML = '<div style="padding: 12px; text-align: center; color: var(--text-muted); font-size: 13px;">Barang tidak ditemukan atau stok kosong.</div>';
+                    } else {
+                        resDiv.innerHTML = res.map(b => `
+                            <div style="padding: 12px; border-bottom: 1px solid #f1f5f9; cursor: pointer; hover:background: #f8fafc;" 
+                                 onclick="pilihPengganti('${index}', '${b.id_barang}', '${b.nama_barang}', ${b.stok_saat_ini}, ${b.harga_jual})">
+                                <div style="font-weight: 600; font-size: 13px;">${b.nama_barang}</div>
+                                <div style="font-size: 12px; color: var(--text-muted); display: flex; justify-content: space-between;">
+                                    <span>Rp ${Number(b.harga_jual).toLocaleString('id-ID')}</span>
+                                    <span style="color: ${b.stok_saat_ini > 0 ? 'var(--success-color)' : 'var(--danger-color)'}">Stok: ${b.stok_saat_ini}</span>
+                                </div>
+                            </div>
+                        `).join('');
+                    }
+                    resDiv.style.display = 'block';
+                });
+        }, 500);
+    }
+    
+    function pilihPengganti(index, idBarang, nama, stok, harga) {
+        if (stok <= 0) {
+            showToast("Stok barang ini kosong, tidak bisa dijadikan pengganti!", "error");
+            return;
+        }
+        
+        document.getElementById(`searchResult_${index}`).style.display = 'none';
+        document.getElementById(`searchBarang_${index}`).value = '';
+        
+        document.getElementById(`selectedPenggantiInfo_${index}`).style.display = 'block';
+        document.getElementById(`namaPengganti_${index}`).innerText = nama;
+        document.getElementById(`hargaPengganti_${index}`).innerText = formatRupiah(harga);
+        document.getElementById(`stokPengganti_${index}`).innerText = stok;
+        document.getElementById(`qtyPengganti_${index}`).max = stok;
+        document.getElementById(`qtyPengganti_${index}`).value = 1;
+        
+        if (currentReturnItems[index]) {
+            currentReturnItems[index].id_barang_pengganti = idBarang;
+            currentReturnItems[index].harga_pengganti = harga;
+            hitungSelisih(index);
+        }
+    }
+    
+    function hitungSelisih(index) {
+        const item = currentReturnItems[index];
+        if (!item) return;
+        
+        let selisihInfo = document.getElementById(`selisihInfo_${index}`);
+        if (!selisihInfo) return;
+
+        if (item.jenis === "Tukar Barang Lain" && item.id_barang_pengganti) {
+            item.qty_pengganti = Number(document.getElementById(`qtyPengganti_${index}`).value);
+            
+            const totalRetur = item.qty_return * item.harga_satuan; // Nilai barang yang dikembalikan
+            const totalPengganti = item.qty_pengganti * item.harga_pengganti; // Nilai barang baru
+            
+            // Positif = Pelanggan Kurang Bayar, Negatif = Toko Refund Uang
+            item.selisih_harga = totalPengganti - totalRetur;
+            
+            if (item.selisih_harga > 0) {
+                selisihInfo.style.background = '#fef2f2';
+                selisihInfo.style.color = 'var(--danger-color)';
+                selisihInfo.innerHTML = `Pelanggan Tambah Bayar: ${formatRupiah(item.selisih_harga)}`;
+            } else if (item.selisih_harga < 0) {
+                selisihInfo.style.background = '#f0fdf4';
+                selisihInfo.style.color = 'var(--success-color)';
+                selisihInfo.innerHTML = `Kembalian/Refund: ${formatRupiah(Math.abs(item.selisih_harga))}`;
+            } else {
+                selisihInfo.style.background = '#f1f5f9';
+                selisihInfo.style.color = 'var(--text-muted)';
+                selisihInfo.innerHTML = `Pas (Tidak ada selisih)`;
+            }
+        } else if (item.jenis === "Refund Uang") {
+            item.selisih_harga = -(item.qty_return * item.harga_satuan);
+        } else if (item.jenis === "Tukar Barang Sama") {
+            item.selisih_harga = 0;
         }
     }
 
@@ -250,22 +478,38 @@
 
         for (let k of keys) {
             const ri = currentReturnItems[k];
-            // Jika refund uang, berarti toko minus (mengeluarkan uang) -> negatif
-            if (ri.jenis === "Refund Uang") {
-                selisihBayar -= (ri.harga_satuan * ri.qty_return);
+            
+            // Tambahkan selisih dari item ini ke total selisih
+            selisihBayar += ri.selisih_harga;
+            
+            let idPengganti = "";
+            let qtyPengganti = 0;
+            
+            if (ri.jenis === "Tukar Barang Sama") {
+                idPengganti = ri.id_barang_direturn;
+                qtyPengganti = ri.qty_return;
+            } else if (ri.jenis === "Tukar Barang Lain") {
+                idPengganti = ri.id_barang_pengganti;
+                qtyPengganti = ri.qty_pengganti;
+                if (!idPengganti) {
+                    return showToast("Pilih barang pengganti untuk Tukar Barang Lain!", "error");
+                }
             }
 
             items.push({
                 id_barang_direturn: ri.id_barang_direturn,
                 qty_return: ri.qty_return,
-                id_barang_pengganti: (ri.jenis === "Tukar Barang Sama") ? ri.id_barang_direturn : "",
-                qty_pengganti: (ri.jenis === "Tukar Barang Sama") ? ri.qty_return : 0,
+                id_barang_pengganti: idPengganti,
+                qty_pengganti: qtyPengganti,
                 alasan_return: ri.alasan_return
             });
         }
 
         const noInvoice = currentInvoice.header.no_invoice;
-        const jenisGlobal = (selisihBayar === 0) ? "Tukar Barang Sama" : "Refund Uang / Campuran";
+        let jenisGlobal = "Campuran";
+        if (items.every(i => !i.id_barang_pengganti)) jenisGlobal = "Refund Uang";
+        else if (items.every(i => i.id_barang_pengganti === i.id_barang_direturn)) jenisGlobal = "Tukar Barang Sama";
+        else if (items.some(i => i.id_barang_pengganti && i.id_barang_pengganti !== i.id_barang_direturn)) jenisGlobal = "Tukar Tambah";
 
         const btn = document.getElementById('btnProsesReturn');
         btn.disabled = true;
@@ -276,6 +520,8 @@
                 showToast(`Return Berhasil! No: ${res.noReturn}`, "success");
                 if (selisihBayar < 0) {
                     alert(`PENTING!\nKembalikan Uang Tunai kepada pelanggan sebesar: ${formatRupiah(Math.abs(selisihBayar))}`);
+                } else if (selisihBayar > 0) {
+                    alert(`PENTING!\nTerima Uang Tunai dari pelanggan sebesar: ${formatRupiah(selisihBayar)}`);
                 }
                 resetReturnView();
             })

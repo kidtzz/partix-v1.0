@@ -17,6 +17,7 @@ function getDashboardStats() {
     totalPotonganMingguIni: 0,
     totalPotonganBulanIni: 0,
     totalPotonganTahunIni: 0,
+    totalRefundHariIni: 0,
     dailySales: {},
     notifikasiStockMinimum: []
   };
@@ -102,6 +103,22 @@ function getDashboardStats() {
         stats.dailySales[txDateStr] += (Number(tx.total) || 0);
       }
     });
+    
+    // 3. Hitung Total Refund (Return)
+    const returnList = SheetService.readSheet("Return");
+    returnList.forEach(r => {
+      if (r.tanggal && r.status === "Selesai") {
+        const retDateStr = new Date(r.tanggal).toLocaleString('en-CA', { timeZone: 'Asia/Jakarta' }).split(',')[0].trim();
+        if (retDateStr === todayStr) {
+           const selisih = Number(r.selisih_harga) || 0;
+           if (selisih < 0) {
+              // Jika selisih bayar negatif (Toko kembalikan uang), masuk ke total refund
+              stats.totalRefundHariIni += Math.abs(selisih);
+           }
+        }
+      }
+    });
+    
     
   } catch(e) {
     throw new Error("Gagal mengambil data dashboard: " + e.message);

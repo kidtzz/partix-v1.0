@@ -131,6 +131,7 @@
                         <th style="min-width: 105px;">H. Bengkel</th>
                         <th style="min-width: 105px;">H. Teman</th>
                         <th style="min-width: 105px;">H. Grosir</th>
+                        <th style="min-width: 90px;">Status</th>
                         <th style="min-width: 80px; text-align: center;">Aksi</th>
                     </tr>
                 </thead>
@@ -355,6 +356,15 @@
                 <label>Harga Jual Dasar (Regular)</label>
                 <input type="number" class="input-control" id="editHargaReg" value="0" oninput="previewEditHarga()"
                     style="font-size: 14px; font-weight: 600; padding: 10px;">
+            </div>
+            
+            <div class="input-group">
+                <label>Status Tampil di Menu Penjualan</label>
+                <select class="input-control" id="editStatusHarga" style="font-weight: 600;">
+                    <option value="Aktif">Aktif (Tampilkan)</option>
+                    <option value="Nonaktif">Nonaktif (Sembunyikan)</option>
+                </select>
+                <small style="color: var(--text-muted); display: block; margin-top: 4px;">Pilih Nonaktif untuk menyembunyikan barang ini dari kasir.</small>
             </div>
             <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 12px;">
                 <div class="input-group">
@@ -736,7 +746,7 @@
 
     function loadAdminHarga() {
         document.getElementById('adminHargaTableBody').innerHTML = `<tr><td colspan="9" style="text-align:center;">Memuat data...</td></tr>`;
-        BackendAPI.call('getBarangUntukPOS').then(data => {
+        BackendAPI.call('getHargaMasterList').then(data => {
             adminBarangData = data;
             renderAdminHarga(data);
             isAdminHargaLoaded = true;
@@ -778,6 +788,9 @@
                 <td style="padding: 12px 14px;"><span class="price-pill" style="background: rgba(139, 92, 246, 0.08); color: #7c3aed;">${formatRupiah(hrgBeng)}</span></td>
                 <td style="padding: 12px 14px;"><span class="price-pill" style="background: rgba(16, 185, 129, 0.08); color: #059669;">${formatRupiah(hrgTem)}</span></td>
                 <td style="padding: 12px 14px;"><span class="price-pill" style="background: rgba(236, 72, 153, 0.08); color: #db2777;">${formatRupiah(hrgGro)}</span></td>
+                <td style="padding: 12px 14px;">
+                    <span class="badge ${b.status_harga === 'Aktif' ? 'badge-success' : 'badge-secondary'}">${b.status_harga || 'Nonaktif'}</span>
+                </td>
                 <td style="padding: 12px 14px; text-align: center;">
                     <button class="btn btn-secondary btn-sm" onclick="editHarga('${b.id_barang}')" style="padding: 5px 12px; font-size: 10px;"><i class='bx bx-edit-alt'></i> Edit</button>
                 </td>
@@ -820,6 +833,7 @@
 
         document.getElementById('modalEditHargaId').textContent = b.id_barang;
         document.getElementById('editHargaReg').value = b.harga['Regular'] || 0;
+        document.getElementById('editStatusHarga').value = b.status_harga || "Nonaktif";
         previewEditHarga();
 
         document.getElementById('modalEditHarga').classList.add('active');
@@ -833,6 +847,7 @@
     function simpanEditHarga() {
         if (!currentIdBarangUntukHarga) return;
         const hrgReg = Number(document.getElementById('editHargaReg').value);
+        const statusHarga = document.getElementById('editStatusHarga').value;
 
         if (!hrgReg || hrgReg <= 0) return showToast('Harga Regular harus diisi', 'error');
 
@@ -841,13 +856,14 @@
         btn.innerHTML = "Menyimpan...";
 
         const idBarang = currentIdBarangUntukHarga;
-        BackendAPI.call('updateHargaJual', [idBarang, hrgReg, `Update Harga via Admin Panel oleh ${AppState.user ? AppState.user.nama_lengkap : 'Admin'}`])
+        BackendAPI.call('updateHargaJual', [idBarang, hrgReg, `Update Harga via Admin Panel oleh ${AppState.user ? AppState.user.nama_lengkap : 'Admin'}`, statusHarga])
             .then(() => {
-                showToast('Semua harga berhasil diperbarui', 'success');
+                showToast('Harga berhasil diperbarui', 'success');
                 closeEditHarga();
                 const b = adminBarangData.find(x => x.id_barang === idBarang);
                 if (b) {
                     b.harga['Regular'] = hrgReg;
+                    b.status_harga = statusHarga;
                     const calcLan = hrgReg * (1 - (globalDiskon.DISKON_LANGGANAN / 100));
                     const calcTem = hrgReg * (1 - (globalDiskon.DISKON_TEMAN / 100));
                     b.harga['Langganan'] = Math.floor(calcLan / 100) * 100;

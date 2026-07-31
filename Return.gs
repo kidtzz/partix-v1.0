@@ -49,11 +49,11 @@ function prosesReturn(noInvoice, itemsReturn, jenisPenyelesaian, selisihBayar) {
     // 2. Insert ke tabel Return (Header)
     SheetService.appendRow("Return", {
       no_return: noReturn,
-      no_invoice_asal: noInvoice,
+      no_invoice: noInvoice,
       tanggal: tanggal,
       kasir: user.email,
-      jenis_penyelesaian: jenisPenyelesaian,
-      selisih_bayar: selisihBayar,
+      jenis_return: jenisPenyelesaian,
+      selisih_harga: selisihBayar,
       status: "Selesai"
     });
     
@@ -143,11 +143,19 @@ function prosesReturn(noInvoice, itemsReturn, jenisPenyelesaian, selisihBayar) {
         });
         
         // Kurangi stok barang pengganti
-        const masterPengganti = SheetService.findRow("Barang", "id_barang", item.id_barang_pengganti);
-        if (masterPengganti) {
-          SheetService.updateRow("Barang", item.id_barang_pengganti, { 
-            stok_saat_ini: Number(masterPengganti.stok_saat_ini) - item.qty_pengganti 
+        const bsPengganti = SheetService.readSheet("Barang_Supplier").find(bs => bs.id_barang === item.id_barang_pengganti && (bs.is_utama == true || bs.is_utama === "TRUE") && bs.status === "Aktif");
+        if (bsPengganti) {
+          SheetService.updateRow("Barang_Supplier", bsPengganti.id_barang_supplier, {
+            stok_saat_ini: (Number(bsPengganti.stok_saat_ini) || 0) - item.qty_pengganti
           });
+        } else {
+          // Fallback legacy
+          const masterPengganti = SheetService.findRow("Barang", "id_barang", item.id_barang_pengganti);
+          if (masterPengganti) {
+            SheetService.updateRow("Barang", item.id_barang_pengganti, { 
+              stok_saat_ini: Number(masterPengganti.stok_saat_ini) - item.qty_pengganti 
+            });
+          }
         }
       }
     }
@@ -194,4 +202,17 @@ function getListBarangReturn() {
       nama_barang: brg ? brg.nama_barang : r.id_barang
     };
   });
+}
+
+/**
+ * Mengambil daftar history retur dari customer ke toko
+ */
+function getDaftarReturLengkap() {
+  requireRole(['Admin', 'Kasir']);
+  
+  const returns = SheetService.readSheet("Return");
+  // Sort from newest to oldest
+  returns.sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime());
+  
+  return returns;
 }

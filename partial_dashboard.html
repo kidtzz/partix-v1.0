@@ -183,8 +183,8 @@
             </div>
         </div>
 
-        <!-- ROW 2: Split (Rincian Pendapatan 60% | Potongan 40%) -->
-        <div class="bento-row-split">
+        <!-- ROW 2: Split (Rincian Pendapatan | Potongan | Refund) -->
+        <div class="bento-row-split" style="grid-template-columns: 2fr 1fr 1fr;">
             <!-- Left: Rincian Pendapatan -->
             <div class="bento-panel">
                 <div class="bento-panel-header">
@@ -225,6 +225,19 @@
                 <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
                     <div id="dashPotonganTitle" class="dash-title" style="color: #f43f5e;">Potongan Bulan Ini</div>
                     <div id="dashPotonganValue" class="dash-value" style="color: #881337;">...</div>
+                </div>
+            </div>
+
+            <!-- Right 2: Refund / Retur -->
+            <div class="bento-panel" style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-color: #fcd34d;">
+                <div class="bento-panel-header">
+                    <h3 class="bento-panel-title" style="color: #d97706;">
+                        <i class='bx bx-revision'></i> Retur & Refund
+                    </h3>
+                </div>
+                <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
+                    <div class="dash-title" style="color: #d97706;">Total Refund Hari Ini</div>
+                    <div id="dashRefundHariIni" class="dash-value" style="color: #92400e;">...</div>
                 </div>
             </div>
         </div>
@@ -296,12 +309,14 @@
 
         BackendAPI.call('getDashboardStats').then(stats => {
             document.getElementById('dashTotalStock').textContent = stats.totalStockBarang.toLocaleString('id-ID');
-            document.getElementById('dashTotalSales').textContent = stats.totalPenjualanHariIni.toLocaleString('id-ID') + " Trx";
-            document.getElementById('dashTotalRevenue').textContent = "Rp " + stats.totalPendapatanHariIni.toLocaleString('id-ID');
+            document.getElementById('dashTotalSales').textContent = (stats.totalPenjualanHariIni || 0).toLocaleString('id-ID') + ' Transaksi';
+            document.getElementById('dashTotalRevenue').textContent = formatRupiah(stats.totalPendapatanHariIni || 0);
+
+            document.getElementById('dashCashHariIni').textContent = formatRupiah(stats.pendapatanCashHariIni || 0);
+            document.getElementById('dashTransferHariIni').textContent = formatRupiah(stats.pendapatanTransferHariIni || 0);
+            document.getElementById('dashQRISHariIni').textContent = formatRupiah(stats.pendapatanQRISHariIni || 0);
             
-            document.getElementById('dashCashHariIni').textContent = "Rp " + (stats.pendapatanCashHariIni || 0).toLocaleString('id-ID');
-            document.getElementById('dashTransferHariIni').textContent = "Rp " + (stats.pendapatanTransferHariIni || 0).toLocaleString('id-ID');
-            document.getElementById('dashQRISHariIni').textContent = "Rp " + (stats.pendapatanQRISHariIni || 0).toLocaleString('id-ID');
+            document.getElementById('dashRefundHariIni').textContent = formatRupiah(stats.totalRefundHariIni || 0);
             
             // Simpan stats untuk dipakai filter potongan
             window.currentDashboardStats = stats;

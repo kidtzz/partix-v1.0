@@ -14,7 +14,7 @@ function getBarangUntukPOS() {
   const bsList = SheetService.readSheet("Barang_Supplier").filter(bs => bs.status === "Aktif");
   
   return barangList
-    .filter(b => b.status_barang === "Aktif" && bsList.some(bs => bs.id_barang === b.id_barang))
+    .filter(b => b.status_barang === "Aktif" && bsList.some(bs => bs.id_barang === b.id_barang) && hargaAktif.some(h => h.id_barang === b.id_barang))
     .map(b => {
     // Stok diakumulasi dari semua supplier aktif
     const allSuppliers = bsList.filter(bs => bs.id_barang === b.id_barang);
